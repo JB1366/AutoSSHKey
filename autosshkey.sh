@@ -245,6 +245,20 @@ ScriptUpdateFromAMTM() {
 
 }
 
+wr_sha256() {
+    local file="$1" hash=""
+    [ -f "$file" ] || return 1
+    if command -v sha256sum >/dev/null 2>&1; then
+        hash=$(sha256sum "$file" 2>/dev/null | awk '{print $1}')
+    elif command -v busybox >/dev/null 2>&1 && busybox sha256sum "$file" >/dev/null 2>&1; then
+        hash=$(busybox sha256sum "$file" 2>/dev/null | awk '{print $1}')
+    elif command -v openssl >/dev/null 2>&1; then
+        hash=$(openssl dgst -sha256 "$file" 2>/dev/null | awk '{print $NF}')
+    fi
+    [ "${#hash}" -eq 64 ] || return 1
+    printf '%s\n' "$hash"
+}
+
 check_github() {
     GITHUB="https://raw.githubusercontent.com/JB1366/AutoSSHKey/main/autosshkey.sh"
     REMOTE_TMP="/tmp/wr_remote.tmp"; LOCAL_HASH=""; REMOTE_HASH=""
