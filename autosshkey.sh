@@ -74,36 +74,25 @@ install_menu() {
 				2|3|4|5|6|7)
                     froze || continue
                     case "$choice" in
-                        2)
-                            do_uninstall
-                            break ;;
-                        3)
-                            ssh_keys
-                            break ;;
-                        4)
-                            del_ssh_keys
-                            break ;;
-                        5)
-                            echo -e "\n${BL}================ Authorized Keys =================${NC}\n"
+                        2) do_uninstall; break ;;
+                        3) ssh_keys; break ;;
+                        4) del_ssh_keys; break ;;
+                        5) echo -e "\n${BL}================ Authorized Keys =================${NC}\n"
                             if [ -f "/root/.ssh/authorized_keys" ]; then cat /root/.ssh/authorized_keys
                             else echo -e "${YL}[!] File not found.${NC}"; fi
                             echo -e "\n\n${BL}==================================================${NC}"
                             pause; break ;;
-                        6)
-                            echo -e "\n${BL}================== Known Hosts  ==================${NC}\n"
+                        6) echo -e "\n${BL}================== Known Hosts  ==================${NC}\n"
                             if [ -f "/jffs/.ssh/known_hosts" ]; then cat /jffs/.ssh/known_hosts
                             else echo -e "${YL}[!] File not found.${NC}"; fi
                             echo -e "\n${BL}==================================================${NC}"
                             pause; break ;;
-                        7)
-                            node_auth
-                            break ;;
+                        7) node_auth; break ;;
                     esac
                     break ;;
-                e|E)
-                    clear; hasta; exit 0 ;;
-                *)
-                    freeze 2; continue ;;
+                e|E) clear; hasta; exit 0 ;;
+                *) freeze 2; continue ;;
+
             esac
         done
     done
@@ -281,8 +270,6 @@ ssh_init() {
 }
 
 node_auth() {
-	mkdir -p "$INSTALL_DIR" 2>/dev/null
-    if [ ! -f "$CONFIG" ]; then touch "$CONFIG"; fi
     if [ ! -s "$SSH_KEY" ]; then
         echo -e "\n${YL}[!] Main Router SSH Key not found.${NC}"
         pause; return
