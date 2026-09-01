@@ -391,8 +391,10 @@ ssh_keys() {
 		pause; return 0
 	fi
 	if [ -f "/jffs/.ssh/id_dropbear" ] && [ ! -f "/root/.ssh/id_dropbear" ]; then
-		echo -e "\n${GR}[!] Stored key detected in /jffs/.ssh/, Linking and configuring...${NC}\n"
-        sleep 3
+		while true; do
+            printf "\n${NC}Stored key detected in /jffs/.ssh/, Proceed? (y/n): "; read -r update
+            case "$update" in y|Y) break ;; n|N) return ;; *) freeze 2 ;; esac; done
+        echo -e "\n${GR}[!]  Linking and configuring...${NC}\n"
 	fi
     if [ ! -f "/jffs/.ssh/id_dropbear" ]; then
         while true; do
