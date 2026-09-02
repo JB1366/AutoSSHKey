@@ -79,20 +79,20 @@ install_menu() {
 				2|3|4|5|6|7)
                     froze || continue
                     case "$choice" in
-                        2) do_uninstall; break ;;
-                        3) ssh_keys; break ;;
-                        4) del_ssh_keys; break ;;
+                        2) do_uninstall ;;
+                        3) ssh_keys ;;
+                        4) del_ssh_keys ;;
                         5) echo -e "\n${BL}================ Authorized Keys =================${NC}\n"
                             if [ -f "/root/.ssh/authorized_keys" ]; then cat /root/.ssh/authorized_keys
                             else echo -e "${YL}[!] File not found.${NC}"; fi
                             echo -e "\n\n${BL}==================================================${NC}"
-                            pause; break ;;
+                            pause ;;
                         6) echo -e "\n${BL}================== Known Hosts  ==================${NC}\n"
                             if [ -f "/jffs/.ssh/known_hosts" ]; then cat /jffs/.ssh/known_hosts
                             else echo -e "${YL}[!] File not found.${NC}"; fi
                             echo -e "\n${BL}==================================================${NC}"
-                            pause; break ;;
-                        7) node_auth; break ;;
+                            pause ;;
+                        7) node_auth ;;
                     esac
                     break ;;
                 e|E) clear; hasta; exit 0 ;;
