@@ -69,6 +69,7 @@ install_menu() {
         echo -e "  $N5  View Authorized Keys                            "
         echo -e "  $N6  View Known Hosts                                "
         echo -e "  $N7  Node Authentication                             "
+        echo -e "                                                       "
         echo -e "  $LE  Exit                                            "
         echo -e "                                                       "
         echo -e "${BL}=================================================="
