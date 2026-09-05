@@ -120,6 +120,8 @@ check_version() {
     case "$mode" in
         do_install)
             case "$STATE" in
+                OFFLINE)       echo -e "\n$RD[!] Github Offline.$NC\n"
+                               UP="try again later?" ;;
                 OUTDATED)      echo -e "\n$GR[i] A new version (${NC}v$REMOTE_VERSION$GR) is available!$NC\n"
                                UP="update version?" ;;
                 HASH_DIFF)     echo -e "\n$GR[i] There is a Hash Update for (${NC}v$SCRIPT_VERSION$DEV$GR).$NC\n"
@@ -207,7 +209,7 @@ do_install() {
 
 do_update() {
     TEMP_SCRIPT="/tmp/autosshkey.sh"
-    if curl -sfL --retry 3 "$GITHUB" -o "$TEMP_SCRIPT" && [ -s "$TEMP_SCRIPT" ]; then
+    if curl -sfL --retry 3 "$GITHUB" -o "$TEMP_SCRIPT" 2>/dev/null && [ -s "$TEMP_SCRIPT" ]; then
         mv "$TEMP_SCRIPT" "$REPORT_SCRIPT"
         chmod +x "$REPORT_SCRIPT" 2>/dev/null
         return 0
@@ -223,13 +225,13 @@ do_update() {
         TARGET_PATH=$(readlink -f "$REPORT_SCRIPT" 2>/dev/null)
         [ -z "$TARGET_PATH" ] && TARGET_PATH="$REPORT_SCRIPT"
         if [ "$CURRENT_PATH" != "$TARGET_PATH" ]; then
-            echo -e "\n$YL[!] GitHub unreachable. Installing current local copy...$NC\n"
+            echo -e "\n$YL[!] GitHub unreachable. Installing current local copy...$NC"
             cp "$0" "$REPORT_SCRIPT"
             chmod +x "$REPORT_SCRIPT" 2>/dev/null
-            return 0
+            pause; return 0
         else
-            echo -e "$RD[!] GitHub unreachable and script is already in place.$NC"
-            return 1
+            echo -e "\n$YL[!] GitHub unreachable and script is already in place.$NC"
+            pause; return 1
         fi
     fi
 }
