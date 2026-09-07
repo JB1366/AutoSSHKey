@@ -1,0 +1,6 @@
+#==========================#
+# Auto SSH-Key - Changelog #
+#==========================#
+
+v1.0.1-minor updates.
+v1.0.0-Initial Release.
