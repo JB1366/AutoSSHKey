@@ -285,7 +285,7 @@ node_auth() {
 	if [ ! -s "$SSH_KEY" ]; then echo -e "\n$YL[!] Main Router SSH Key not found.$NC"; pause; return; fi
     echo -e "\n$GR[✓] Main Router SSH Key found at: $WH$SSH_KEY$NC\n"
     if [ -z "$SSH_NODES" ] || [ "$SSH_NODES" = " " ]; then node_choice="2"; EMPTY_NODES="1"
-    elif [ "$RETRY" = "1" ]; then node_choice="2"
+    elif [ "$RETRY" = "1" ]; then node_choice="2"; RETRY="0"
     else
         echo -e "$BL Node Source Selection: \n"
         echo -e "  $N1 Use saved node(s) from CONFIG"
