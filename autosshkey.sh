@@ -282,19 +282,41 @@ ssh_init() {
 }
 
 node_auth() {
-    if [ ! -s "$SSH_KEY" ]; then echo -e "\n$YL[!] Main Router SSH Key not found.$NC"; pause; return; fi
-	sed -i '/^SSH_NODES=/d' "$CONFIG"
-	echo -e "\n$GR[✓] Main Router SSH Key found at: $WH$SSH_KEY$NC\n"
-	echo -e "$BL=================================================="
+	if [ ! -s "$SSH_KEY" ]; then echo -e "\n$YL[!] Main Router SSH Key not found.$NC"; pause; return; fi
+    echo -e "\n$GR[✓] Main Router SSH Key found at: $WH$SSH_KEY$NC\n"
+    if [ "$INSTALL" = "1" ] || [ -z "$SSH_NODES" ] || [ "$SSH_NODES" = " " ]; then node_choice="2"; EMPTY_NODES="1"
+    else
+        echo -e "$BL Node Source Selection: \n"
+        echo -e "  $N1 Use saved node(s) from CONFIG"
+        echo -e "  $N2 Rescan NVRAM (Check for IP changes)"
+        while true; do
+            printf "\n Choice [1-2]: "; read -r node_choice
+            case "$node_choice" in 1) break ;; 2) break ;; *) freeze 2 ;; esac; done
+    fi
+    case "$node_choice" in
+        1)
+            AIMESH_NODES="$SSH_NODES"; NODESSH="1"
+            echo -e "$GR\n[+] Scanning Node(s) from CONFIG.\n" ;;
+
+        2|*)
+            if [ "$EMPTY_NODES" = "1" ]; then echo -e "$YL[!] New Install or no saved Node(s) found in CONFIG."; EMPTY_NODES="0"; fi
+            UNSUPPORTED_MODELS="AX4200|AX1800S|XD4"; NODESSH="0"
+            AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' | grep -vE "$UNSUPPORTED_MODELS" | sort -t . -k 4,4n)
+            if [ -z "$AIMESH_NODES" ]; then
+                AIMESH_NODES=$(nvram get cfg_device_list | sed 's/</\n/g' | grep '>0$' | awk -F '>' '{print $1 "|" $2}' | grep -vE "$UNSUPPORTED_MODELS" | sort -t . -k 4,4n)
+            fi
+            if nvram get asus_device_list | grep -qE "$UNSUPPORTED_MODELS" || nvram get cfg_device_list | grep -qE "$UNSUPPORTED_MODELS"; then
+                echo -e " $YL[!]$NC These models not supported: TUF-AX4200, RT-AX1800S, ZENWIFI_XD4_PLUS."
+            fi
+            echo -e "$GR\n[+] Scanning NVRAM for Node(s).\n" ;;
+    esac
+    echo -e "$BL=================================================="
     echo -e "$NC         Verifying Node Authentication            "
     echo -e "$BL==================================================\n"
-	AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' | sort -t . -k 4,4n)
-	if [ -z "$AIMESH_NODES" ]; then
-		AIMESH_NODES=$(nvram get cfg_device_list | sed 's/</\n/g' | grep '>0$' | awk -F '>' '{print $1 "|" $2}' | sort -t . -k 4,4n)
-	fi
     if [ -z "$AIMESH_NODES" ]; then
         echo -e "\n$RD[!] No AiMesh Nodes detected in NVRAM.$NC"
         TOTAL_NODES=0; any_success=0
+        ACTION_MSG="Force ROUTER-ONLY configuration"; KEY_LBL="r"
     else
         TOTAL_NODES=$(echo "$AIMESH_NODES" | grep -o "|" | wc -l)
 		any_success=0; VALID_NODES=""; new_nodes=0
@@ -302,7 +324,7 @@ node_auth() {
 			ROUTER="${line%%|*}"; IP="${line#*|}"
             [ -z "$IP" ] || [ "$IP" = "$ROUTER" ] && continue
 			if [ -z "$ROUTER" ]; then ROUTER="Node_$IP"; fi
-			printf "$NC[*] Testing $GR%-14s $NC(%s) " "$ROUTER" "$IP"
+			printf "$NC[*] Testing $GR%-14s$NC (%s) " "$ROUTER" "$IP"
             SSH_ERR=$(/usr/bin/ssh -p "$SSH_PORT" -i "$SSH_KEY" -o StrictHostKeyChecking=no -o BatchMode=yes "${NODE_USER}@${IP}" "exit" 2>&1 >/dev/null)
 			SSH_RC=$?
 			if [ "$SSH_RC" -eq 0 ]; then
@@ -336,31 +358,40 @@ node_auth() {
 			fi
 		done
     fi
-    sed -i '/SSH_NODES=/d' "$CONFIG"
-    if [ -z "$VALID_NODES" ]; then echo 'SSH_NODES=" "' >> "$CONFIG"
-    else echo "SSH_NODES=\"$VALID_NODES\"" >> "$CONFIG"; fi
+    case "$NODESSH" in
+        1)
+            ;;
+        *)
+            sed -i '/SSH_NODES=/d' "$CONFIG"
+            if [ -z "$VALID_NODES" ]; then
+                echo 'SSH_NODES=" "' >> "$CONFIG"
+            else
+                echo "SSH_NODES=\"$VALID_NODES\"" >> "$CONFIG"; fi ;;
+    esac
     if [ "$any_success" -gt 0 ] && [ "$any_success" -eq "$TOTAL_NODES" ]; then
         echo -e "\n$GR[✓] All nodes ($any_success/$TOTAL_NODES) authenticated successfully!$NC"
         if [ "$new_nodes" -gt 0 ]; then
             [ "$new_nodes" -eq 1 ] && suffix="" || suffix="s"
             echo -e "\n$YL[!] $new_nodes new node$suffix successfully authenticated.$NC"
         fi
+        if [ "$NODESSH" = "0" ]; then echo -e "$BL\n[+] Adding Node(s) to CONFIG."; fi
         pause; return
     else
         if [ "$any_success" -gt 0 ]; then
             echo -e "\n$YL[!] Partial Success: Only $any_success of $TOTAL_NODES nodes authenticated.$NC"
             ACTION_MSG="Continue with current nodes only"
             KEY_LBL="$LC"
+            echo -e "$BL\n[+] Adding Node(s) to CONFIG."; fi
         else
             echo -e "\n$RD[!] CRITICAL: SSH authentication failed on all nodes.$NC\n"
-            ACTION_MSG="No Nodes Detected"
+            ACTION_MSG="Force ROUTER-ONLY configuration"
             KEY_LBL="$LR"
         fi
         echo -e "\n Choices:\n"
         echo -e "  $BL(Enter)$NC Retry authentication"
         echo -e "  $BL$KEY_LBL$NC     $ACTION_MSG"
         echo -e "  $BL$LE     Exit to main menu\n"
-        printf "\n$NC Selection: "; read -r choice
+        selection
         case "$choice" in
             [rR]|[cC])
                 echo -e "\n\n$YL[!] $ACTION_MSG...$NC\n"
@@ -371,11 +402,10 @@ node_auth() {
                 echo -e "$GR[✓] Environment configuration locked in.$NC"
                 pause; return ;;
             e|E)
-                return ;;
+                break 2 ;;
             *)
-                echo -e "\n\n$BL[i] Retrying authentication...$NC"
-                sleep 5
-                node_auth; return ;;
+                printf "\n$BL[i] Retrying authentication...$NC"
+                sleep 5; node_auth; return ;;
         esac
     fi
 }
