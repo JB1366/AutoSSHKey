@@ -300,15 +300,11 @@ node_auth() {
 
         2|*)
             if [ "$EMPTY_NODES" = "1" ]; then echo -e "$YL[!] New Install or no saved Node(s) found in CONFIG."; EMPTY_NODES="0"; fi
-            UNSUPPORTED_MODELS="AX4200|AX1800S|XD4"; NODESSH="0"
-            AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' | grep -vE "$UNSUPPORTED_MODELS" | sort -t . -k 4,4n)
+            AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' | sort -t . -k 4,4n)
             if [ -z "$AIMESH_NODES" ]; then
-                AIMESH_NODES=$(nvram get cfg_device_list | sed 's/</\n/g' | grep '>0$' | awk -F '>' '{print $1 "|" $2}' | grep -vE "$UNSUPPORTED_MODELS" | sort -t . -k 4,4n)
+                AIMESH_NODES=$(nvram get cfg_device_list | sed 's/</\n/g' | grep '>0$' | awk -F '>' '{print $1 "|" $2}' | sort -t . -k 4,4n)
             fi
-            if nvram get asus_device_list | grep -qE "$UNSUPPORTED_MODELS" || nvram get cfg_device_list | grep -qE "$UNSUPPORTED_MODELS"; then
-                echo -e " $YL[!]$NC These models not supported: TUF-AX4200, RT-AX1800S, ZENWIFI_XD4_PLUS."
-            fi
-            echo -e "$GR\n[+] Scanning NVRAM for Node(s).\n" ;;
+            NODESSH="0"; echo -e "$GR\n[+] Scanning NVRAM for Node(s).\n" ;;
     esac
     echo -e "$BL=================================================="
     echo -e "$NC         Verifying Node Authentication            "
@@ -316,7 +312,6 @@ node_auth() {
     if [ -z "$AIMESH_NODES" ]; then
         echo -e "\n$RD[!] No AiMesh Nodes detected in NVRAM.$NC"
         TOTAL_NODES=0; any_success=0
-        ACTION_MSG="Force ROUTER-ONLY configuration"; KEY_LBL="r"
     else
         TOTAL_NODES=$(echo "$AIMESH_NODES" | grep -o "|" | wc -l)
 		any_success=0; VALID_NODES=""; new_nodes=0
@@ -363,10 +358,8 @@ node_auth() {
             ;;
         *)
             sed -i '/SSH_NODES=/d' "$CONFIG"
-            if [ -z "$VALID_NODES" ]; then
-                echo 'SSH_NODES=" "' >> "$CONFIG"
-            else
-                echo "SSH_NODES=\"$VALID_NODES\"" >> "$CONFIG"; fi ;;
+            if [ -z "$VALID_NODES" ]; then echo 'SSH_NODES=" "' >> "$CONFIG"
+            else echo "SSH_NODES=\"$VALID_NODES\"" >> "$CONFIG"; fi ;;
     esac
     if [ "$any_success" -gt 0 ] && [ "$any_success" -eq "$TOTAL_NODES" ]; then
         echo -e "\n$GR[✓] All nodes ($any_success/$TOTAL_NODES) authenticated successfully!$NC"
@@ -381,17 +374,17 @@ node_auth() {
             echo -e "\n$YL[!] Partial Success: Only $any_success of $TOTAL_NODES nodes authenticated.$NC"
             ACTION_MSG="Continue with current nodes only"
             KEY_LBL="$LC"
-            echo -e "$BL\n[+] Adding Node(s) to CONFIG."; fi
+            echo -e "$BL\n[+] Adding Node(s) to CONFIG."
         else
             echo -e "\n$RD[!] CRITICAL: SSH authentication failed on all nodes.$NC\n"
-            ACTION_MSG="Force ROUTER-ONLY configuration"
+            ACTION_MSG="No Nodes Detected"
             KEY_LBL="$LR"
         fi
         echo -e "\n Choices:\n"
         echo -e "  $BL(Enter)$NC Retry authentication"
         echo -e "  $BL$KEY_LBL$NC     $ACTION_MSG"
         echo -e "  $BL$LE     Exit to main menu\n"
-        selection
+        printf "\n$NC Selection: "; read -r choice
         case "$choice" in
             [rR]|[cC])
                 echo -e "\n\n$YL[!] $ACTION_MSG...$NC\n"
@@ -402,10 +395,10 @@ node_auth() {
                 echo -e "$GR[✓] Environment configuration locked in.$NC"
                 pause; return ;;
             e|E)
-                break 2 ;;
+                return ;;
             *)
-                printf "\n$BL[i] Retrying authentication...$NC"
-                sleep 5; node_auth; return ;;
+                printf "\n$BL[i] Retrying authentication...$NC"; sleep 5
+                echo -e ""; node_auth; return ;;
         esac
     fi
 }
