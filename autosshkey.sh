@@ -288,13 +288,15 @@ node_auth() {
     elif [ "$RETRY" = "1" ]; then node_choice="2"; RETRY="0"
     else
         echo -e "$BL Node Source Selection: \n"
-        echo -e "  $N1 Use saved node(s) from CONFIG"
+        echo -e "  $N1 Scan saved node(s) from CONFIG"
         echo -e "  $N2 Rescan NVRAM (Check for IP changes)"
+        echo -e ""
+        echo -e "  $LE Exit back to main menu"
         while true; do
-            printf "\n Choice [1-2]: "; read -r node_choice
-            case "$node_choice" in 1) break ;; 2) break ;; *) freeze 2 ;; esac; done
+            printf "\n$NC Selection: "; read -r choice
+            case "$choice" in 1) break ;; 2) break ;; e|E) return ;; *) freeze 2 ;; esac; done
     fi
-    case "$node_choice" in
+    case "$choice" in
         1)
             AIMESH_NODES="$SSH_NODES"; NODESSH="1"
             echo -e "$GR\n[+] Scanning Node(s) from CONFIG.\n" ;;
@@ -384,7 +386,7 @@ node_auth() {
         echo -e "\n Choices:\n"
         echo -e "  $BL(Enter)$NC Retry authentication"
         echo -e "  $BL$KEY_LBL$NC     $ACTION_MSG"
-        echo -e "  $BL$LE     Exit to main menu\n"
+        echo -e "  $LE     Exit to main menu\n"
         printf "\n$NC Selection: "; read -r choice
         case "$choice" in
             [rR]|[cC])
