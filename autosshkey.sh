@@ -293,10 +293,10 @@ node_auth() {
         echo -e ""
         echo -e "  $LE Exit back to main menu"
         while true; do
-            printf "\n$NC Selection: "; read -r choice
-            case "$choice" in 1) break ;; 2) break ;; e|E) return ;; *) freeze 2 ;; esac; done
+            printf "\n$NC Selection: "; read -r node_choice
+            case "$node_choice" in 1) break ;; 2) break ;; e|E) return ;; *) freeze 2 ;; esac; done
     fi
-    case "$choice" in
+    case "$node_choice" in
         1)
             AIMESH_NODES="$SSH_NODES"; NODESSH="1"
             echo -e "$GR\n[+] Scanning Node(s) from CONFIG.\n" ;;
@@ -370,14 +370,14 @@ node_auth() {
             [ "$new_nodes" -eq 1 ] && suffix="" || suffix="s"
             echo -e "\n$YL[!] $new_nodes new node$suffix successfully authenticated.$NC"
         fi
-        if [ "$NODESSH" = "0" ]; then echo -e "$BL\n[+] Adding Node(s) to CONFIG."; fi
+        if [ "$NODESSH" = "0" ]; then echo -e "$BL\n[+] Adding Node(s) to CONFIG.$NC"; fi
         pause; return
     else
         if [ "$any_success" -gt 0 ]; then
             echo -e "\n$YL[!] Partial Success: Only $any_success of $TOTAL_NODES nodes authenticated.$NC"
             ACTION_MSG="Continue with current nodes only"
             KEY_LBL="$LC"
-            echo -e "$BL\n[+] Adding Node(s) to CONFIG."
+            echo -e "$BL\n[+] Adding Node(s) to CONFIG.$NC"
         else
             echo -e "\n$RD[!] CRITICAL: SSH authentication failed on all nodes.$NC\n"
             ACTION_MSG="No Nodes Detected"
