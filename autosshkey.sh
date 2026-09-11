@@ -410,9 +410,9 @@ ssh_keys() {
 	if [ -f "$SSH_KEY" ]; then echo -e "\n$YL[!] Main Router SSH Key already exists.$NC"; pause; return 0; fi
 	if [ -f "/jffs/.ssh/id_dropbear" ] && [ ! -f "/root/.ssh/id_dropbear" ]; then
 		while true; do
-            printf "$NC\nStored key detected in /jffs/.ssh/, Proceed? (y/n): "; read -r update
+            printf "$BL\n[i]$NC Stored key detected in $BL/jffs/.ssh/$NC Proceed? (y/n): "; read -r update
             case "$update" in y|Y) break ;; n|N) return ;; *) freeze 2 ;; esac; done
-        echo -e "\n$GR[!]  Linking and configuring...$NC\n"
+        echo -e "\n$GR[!]  Linking and configuring...$NC"
 	fi
     if [ ! -f "/jffs/.ssh/id_dropbear" ]; then
         while true; do
@@ -430,7 +430,7 @@ ssh_keys() {
     local pub_key=$(dropbearkey -y -f "/root/.ssh/id_dropbear" | grep "^ssh-rsa")
     local current_keys=$(nvram get sshd_authkeys)
 	local combined_keys=$(printf "%s\n%s" "$current_keys" "$pub_key" | sed '/^$/d' | sort -u)
-	echo -e "\n$YL[i] Injecting Key into NVRAM...$NC\n"
+	echo -e "$YL[i] Injecting Key into NVRAM...$NC\n"
 	nvram set sshd_authkeys="$combined_keys"
     nvram commit
 	nvram get sshd_authkeys > /root/.ssh/authorized_keys
@@ -452,7 +452,7 @@ ssh_keys() {
 	echo -e "$BL[*] TIP: If a node is missing after authentication,                    "
 	echo -e "$BL[*]      use option #7 to reauthenticate.                           $NC"
 	printf "\n[*] Press $BL[ENTER]$NC to begin authentication check..."; read -r discard
-	node_auth
+	RETRY="1"; node_auth
 }
 
 del_ssh_keys() {
