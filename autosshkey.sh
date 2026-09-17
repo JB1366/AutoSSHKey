@@ -287,11 +287,16 @@ node_auth() {
     if [ -z "$SSH_NODES" ] || [ "$SSH_NODES" = " " ]; then node_choice="2"; EMPTY_NODES="1"
     elif [ "$RETRY" = "1" ]; then node_choice="2"; RETRY="0"
     else
-        echo -e "$BL Node Source Selection: \n"
-        echo -e "  $N1$NC Scan saved node(s) from CONFIG"
-        echo -e "  $N2 Rescan NVRAM (Check for IP changes)"
-        echo -e ""
-        echo -e "  $LE Exit back to main menu"
+        echo -e "$BL=================================================="
+        echo -e "$NC             Node Source Selection                "
+        echo -e "$BL=================================================="
+        echo -e "                                                     "
+        echo -e "  $N1$NC Scan saved node(s) from CONFIG              "
+        echo -e "  $N2 Rescan NVRAM (Check for IP changes)            "
+        echo -e "                                                     "
+        echo -e "  $LE Exit back to main menu                         "
+        echo -e "                                                     "
+        echo -e "$BL=================================================="
         while true; do
             printf "\n$NC Selection: "; read -r node_choice
             case "$node_choice" in 1) break ;; 2) break ;; e|E) return ;; *) freeze 2 ;; esac; done
