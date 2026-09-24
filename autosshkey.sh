@@ -21,7 +21,7 @@
 #                                                             #
 #=============================================================#
 
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -115,7 +115,6 @@ install_menu() {
 check_version() {
     local mode="$1" version_cmp=""
     froze() { return 0; }
-
     if [ ! -f "$REPORT_SCRIPT" ]; then
         STATE="NOT_INSTALLED"
         froze() { freeze 2; return 1; }
@@ -178,7 +177,6 @@ version_compare() {
 
 menu_vars() {
     if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
-
 	trap 'printf "\033[0m"' 0; trap 'exit 130' INT TERM HUP
 
     UL='\033[4m'; WH='\e[1;37m'; YL='\033[0;33m'; NC='\033[0m'
@@ -200,10 +198,8 @@ menu_vars() {
 do_install() {
 	mkdir -p "$INSTALL_DIR" 2>/dev/null
     if [ ! -f "$CONFIG" ]; then touch "$CONFIG"; fi
-
 	local is_update=0
 	if [ -f "$REPORT_SCRIPT" ]; then is_update=1; fi
-
 	if [ "$is_update" = "1" ]; then
         while true; do
             check_version do_install
@@ -211,11 +207,8 @@ do_install() {
             case "$update" in y|Y) break ;; n|N) return ;; *) freeze 4 ;; esac
         done
     fi
-
     do_update || return 1
-
     echo -e "\n$GR[+] Downloading latest version (${NC}v$REMOTE_VERSION$GR)$NC"
-
 	if [ "$is_update" = "1" ]; then
 		echo -e "\n$BL[✓] Auto SSH Key successfully installed.$NC"
 		printf "\nPress $BL[Enter]$NC to apply changes & restart script..."; read -r discard
@@ -223,19 +216,20 @@ do_install() {
 		exec "$REPORT_SCRIPT" install "$@"
 		echo -e "$RD[!]Error: Failed to restart script!$NC" >&2; exit 1
 	fi
-
     if [ "$(nvram get jffs2_scripts)" != "1" ]; then
         echo -e "$RD[!] ERROR: JFFS custom scripts not enabled.$NC"
         pause; return 1
     fi
-
 	if [ -f "$SSH_KEY" ]; then
         node_auth
 	else
         ssh_keys || return 1
     fi
-
     echo -e "\n$GR[+] Processing Auto SSH Key Files...$NC\n"
+    if ! grep -F "sh /jffs/addons/AutoSSHKey/autosshkey.sh" /jffs/configs/profile.add >/dev/null 2>/dev/null; then
+        echo "alias as=\"sh /jffs/addons/AutoSSHKey/autosshkey.sh\" # added by AutoSSHKey" >> /jffs/configs/profile.add
+        echo -e "$GR[+] Adding alias 'as' to /jffs/configs/profile.add$NC\n"
+    fi
     SCRIPT_VERSION="$REMOTE_VERSION"
     sys_log "(v$REMOTE_VERSION) successfully installed."
     echo -e "$GR[✓] SUCCESS: Installation complete!$NC\n"
@@ -344,15 +338,11 @@ node_auth() {
         pause
         return
     fi
-
     echo -e "\n$GR[✓] Main Router SSH Key found at: $WH$SSH_KEY$NC\n"
-
     echo -e "$BL=================================================="
     echo -e "$NC         Verifying Node Authentication            "
     echo -e "$BL==================================================\n"
-
     AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' |  sort -t . -k 4,4n)
-
     if [ -z "$AIMESH_NODES" ]; then
         echo -e "$RD[!] No AiMesh Nodes detected in NVRAM.$NC"
         TOTAL_NODES=0; any_success=0
@@ -360,12 +350,11 @@ node_auth() {
         TOTAL_NODES=$(echo "$AIMESH_NODES" | grep -o "|" | wc -l)
 		any_success=0; VALID_NODES=""; new_nodes=0
         for line in $AIMESH_NODES; do
-			ROUTER="${line%%|*}"; IP="${line#*|}"
+			ROUTER="${line%%|*}"
+            IP="${line#*|}"
             case "$IP" in ""|"$ROUTER") continue ;; esac
 			if [ -z "$ROUTER" ]; then ROUTER="Node_$IP"; fi
-
 			printf "$NC[*] Testing $GR%-14s$NC (%s) " "$ROUTER" "$IP"
-
             SSH_ERR=$(/usr/bin/ssh -p "$SSH_PORT" -i "$SSH_KEY" -o StrictHostKeyChecking=no -o BatchMode=yes "${NODE_USER}@${IP}" "exit" 2>&1 >/dev/null)
 			SSH_RC=$?
 			if [ "$SSH_RC" -eq 0 ]; then
@@ -406,7 +395,6 @@ node_auth() {
     else
         echo "SSH_NODES=\"$VALID_NODES\"" >> "$CONFIG"
     fi
-
     if [ "$any_success" -gt 0 ] && [ "$any_success" -eq "$TOTAL_NODES" ]; then
         echo -e "\n$GR[✓] All nodes ($any_success/$TOTAL_NODES) authenticated successfully!$NC"
         if [ "$new_nodes" -gt 0 ]; then
@@ -424,7 +412,6 @@ node_auth() {
             ACTION_MSG="No Nodes Detected"
             KEY_LBL="$LR"
         fi
-
         echo -e " Choices:\n"
         echo -e "  $BL(Enter)$NC Retry authentication"
         echo -e "  $BL$KEY_LBL$NC     $ACTION_MSG"
@@ -459,7 +446,6 @@ ssh_keys() {
         pause
         return 0
     fi
-
 	if [ -f "/jffs/.ssh/id_dropbear" ] && [ ! -f "/root/.ssh/id_dropbear" ]; then
 		while true; do
             printf "$BL\n[i]$NC Stored key detected in $BL/jffs/.ssh/$NC Proceed? (y/n): "; read -r update
@@ -467,7 +453,6 @@ ssh_keys() {
         done
         echo -e "\n$GR[!]  Linking and configuring...$NC"
 	fi
-
     if [ ! -f "/jffs/.ssh/id_dropbear" ]; then
         while true; do
             printf "$NC\nDo you want to create RSA Key (y/n): "; read -r update
@@ -477,25 +462,19 @@ ssh_keys() {
         mkdir -p /jffs/.ssh
         dropbearkey -t rsa -f /jffs/.ssh/id_dropbear
     fi
-
 	rm -f /jffs/.ssh/known_hosts /root/.ssh/known_hosts >/dev/null 2>&1
     mkdir -p /root/.ssh
     cp /jffs/.ssh/id_dropbear /root/.ssh/id_dropbear
     echo -e "\n$BL[i] Copying /jffs/.ssh/id_dropbear to /root/.ssh/id_dropbear$NC\n"
-
 	SSH_KEY="/root/.ssh/id_dropbear"
-
     local pub_key=$(dropbearkey -y -f "/root/.ssh/id_dropbear" | grep "^ssh-rsa")
     local current_keys=$(nvram get sshd_authkeys)
 	local combined_keys=$(printf "%s\n%s" "$current_keys" "$pub_key" | sed '/^$/d' | sort -u)
-
 	echo -e "$YL[i] Injecting Key into NVRAM...$NC\n"
-
 	nvram set sshd_authkeys="$combined_keys"
     nvram commit
 	nvram get sshd_authkeys > /root/.ssh/authorized_keys
     chmod 600 /root/.ssh/authorized_keys
-
     if [ ! -f "$SS_FILE" ]; then echo "#!/bin/sh" > "$SS_FILE" && chmod +x "$SS_FILE"; fi
     if ! grep -q "id_dropbear" "$SS_FILE"; then
         echo -e "\n$YL[i] Adding SSH Key to services-start for persistence on reboots...$NC"
@@ -503,7 +482,6 @@ ssh_keys() {
         echo "cp /jffs/.ssh/id_dropbear /tmp/home/root/.ssh/id_dropbear # sshpairs" >> "$SS_FILE"
         echo "cp /jffs/.ssh/known_hosts /tmp/home/root/.ssh/known_hosts # sshpairs persistence" >> "$SS_FILE"
     fi
-
 	echo -e "$BL=================================================="
 	echo -e "$NC               ACTION REQUIRED NOW                "
     echo -e "$BL=================================================="
@@ -529,25 +507,21 @@ del_ssh_keys() {
 		pause
         return
 	fi
-	echo -e "\n$YL[i] Purging RSA key footprint from environment...$NC"
-	if [ -f "/jffs/.ssh/id_dropbear.pub" ]; then
+    echo -e "\n$YL[i] Purging RSA key footprint from environment...$NC"
+    if [ -f "/jffs/.ssh/id_dropbear.pub" ]; then
 		PUB_STRING=$(awk '{print $2}' /jffs/.ssh/id_dropbear.pub)
 	else
 		PUB_STRING=""
 	fi
-
 	if [ -n "$PUB_STRING" ] && [ -f "/root/.ssh/authorized_keys" ]; then
 		sed -i "\|$PUB_STRING|d" /root/.ssh/authorized_keys
 	fi
-
 	NVRAM_KEYS=$(nvram get sshd_authkeys)
-
 	if [ -n "$PUB_STRING" ] && echo "$NVRAM_KEYS" | grep -q "$PUB_STRING"; then
 		CLEANED_KEYS=$(echo "$NVRAM_KEYS" | grep -v "$PUB_STRING")
 		nvram set sshd_authkeys="$CLEANED_KEYS"
 		nvram commit
 	fi
-
 	rm -f /jffs/.ssh/id_dropbear /jffs/.ssh/id_dropbear.pub /root/.ssh/id_dropbear >/dev/null 2>&1
 	rm -f /jffs/.ssh/known_hosts /root/.ssh/known_hosts >/dev/null 2>&1
     nvram get sshd_authkeys > /root/.ssh/authorized_keys
@@ -565,6 +539,7 @@ do_uninstall() {
 	if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 	ssh_init
     rm -rf "$INSTALL_DIR" 2>/dev/null
+    sed -i '/# added by AutoSSHKey/d' /jffs/configs/profile.add 2>/dev/null
 	sys_log "(v$SCRIPT_VERSION) successfully uninstalled."
 	echo -e "\n$GR[+] System cleaned. SSH Keys and Fingerprints preserved in /jffs/.ssh$NC"
 	echo -e "\n$GR[+] Success: Auto SSH Key uninstalled.$NC"
