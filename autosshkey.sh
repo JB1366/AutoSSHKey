@@ -21,7 +21,7 @@
 #                                                             #
 #=============================================================#
 
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -222,7 +222,7 @@ do_install() {
     mkdir -p "$(dirname "$PROFILE_ADD")"
     [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
     if ! grep -q "alias as=" "$PROFILE_ADD" 2>/dev/null; then
-        echo "alias as=\"$REPORT_SCRIPT install\" # added by AutoSSHKey" >> "$PROFILE_ADD"
+        echo "alias as=\"$REPORT_SCRIPT\" # added by AutoSSHKey" >> "$PROFILE_ADD"
         echo -e "\n$GR[+] Adding alias 'as' to $PROFILE_ADD$NC"
     fi
 
@@ -601,9 +601,6 @@ echo -e "$NC\n\n\n" #===========================================================
 }
 
 case "$1" in
-    install)
-        install_menu
-        ;;
     amtmupdate)
 		shift
         ScriptUpdateFromAMTM "$@"

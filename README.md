@@ -3,7 +3,7 @@ AutoSSHKey<br>
 \
 to install script:
 ```
-curl -sfL https://raw.githubusercontent.com/JB1366/AutoSSHKey/main/autosshkey.sh -o /tmp/autosshkey.sh && sh /tmp/autosshkey.sh install
+curl -sfL https://raw.githubusercontent.com/JB1366/AutoSSHKey/main/autosshkey.sh -o /tmp/autosshkey.sh && sh /tmp/autosshkey.sh
 ```
 \
 \
