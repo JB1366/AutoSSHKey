@@ -21,7 +21,7 @@
 #                                                             #
 #=============================================================#
 
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -466,7 +466,7 @@ ssh_keys() {
 
 	if [ -f "/jffs/.ssh/id_dropbear" ] && [ ! -f "/root/.ssh/id_dropbear" ]; then
 		while true; do
-            printf "$BL\n[i]$NC Stored key detected in $BL/jffs/.ssh/$NC Proceed? (y/n): "; read -r update
+            printf "$BL\n[i]$NC Stored RSA key detected in $BL/jffs/.ssh/$NC Proceed? (y/n): "; read -r update
             case "$update" in y|Y) break ;; n|N) return ;; *) freeze 2 ;; esac
         done
         echo -e "\n$GR[!]  Linking and configuring...$NC"
@@ -500,7 +500,7 @@ ssh_keys() {
 
     if [ ! -f "$SS_FILE" ]; then echo "#!/bin/sh" > "$SS_FILE" && chmod +x "$SS_FILE"; fi
     if ! grep -q "id_dropbear" "$SS_FILE"; then
-        echo -e "\n$YL[i] Adding SSH Key to services-start for persistence on reboots...$NC"
+        echo -e "\n$YL[i] Adding RSA Keys to services-start for persistence on reboots...$NC"
 		echo -e "\n$YL[i] Adding known_hosts to services-start...$NC\n"
         echo "cp /jffs/.ssh/id_dropbear /tmp/home/root/.ssh/id_dropbear # sshpairs" >> "$SS_FILE"
         echo "cp /jffs/.ssh/known_hosts /tmp/home/root/.ssh/known_hosts # sshpairs persistence" >> "$SS_FILE"
@@ -526,7 +526,7 @@ del_ssh_keys() {
             if [ "$unintsall_script" = "1" ]; then
             printf "$RD[!] Uninstalling Auto SSH-Key$NC, Do you want to delete RSA Keys? (y/n): "; read -r delete
             else
-                printf "Do you want to delete Key? (y/n): "; read -r delete
+                printf "Do you want to delete Keys? (y/n): "; read -r delete
             fi
             case "$delete" in y|Y) break ;; n|N) return ;; *) freeze ;; esac
         done
