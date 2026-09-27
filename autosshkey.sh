@@ -222,12 +222,12 @@ do_install() {
     mkdir -p "$(dirname "$PROFILE_ADD")"
     [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
     if ! grep -q "alias as=" "$PROFILE_ADD" 2>/dev/null; then
-        echo "alias as=\"$REPORT_SCRIPT\" # added by AutoSSHKey" >> "$PROFILE_ADD"
+        echo "alias as=\"$REPORT_SCRIPT\" # added by Auto SSH-Key" >> "$PROFILE_ADD"
         echo -e "\n$GR[+] Adding alias 'as' to $PROFILE_ADD$NC"
     fi
 
 	if [ "$is_update" = "1" ]; then
-		echo -e "\n$BL[✓] Auto SSH Key successfully installed.$NC"
+		echo -e "\n$BL[✓] Auto SSH-Key successfully installed.$NC"
 		printf "\nPress $BL[Enter]$NC to apply changes & restart script..."; read -r discard
 		sys_log "(v$REMOTE_VERSION) successfully installed."
 		exec "$REPORT_SCRIPT" install "$@"
@@ -240,7 +240,7 @@ do_install() {
         ssh_keys || return 1
     fi
 
-    echo -e "\n$GR[+] Processing Auto SSH Key Files...$NC\n"
+    echo -e "\n$GR[+] Processing Auto SSH-Key Files...$NC\n"
     SCRIPT_VERSION="$REMOTE_VERSION"
     sys_log "(v$REMOTE_VERSION) successfully installed."
     echo -e "$GR[✓] SUCCESS: Installation complete!$NC\n"
@@ -285,7 +285,7 @@ ScriptUpdateFromAMTM() {
     if [ "$1" = "check" ]; then return 0; fi
     if check_github && do_update; then
         echo -e "  [+] Downloading latest version (v$REMOTE_VERSION)\n\n"
-        echo -e "  [✓] Auto SSH Key successfully updated.\n"
+        echo -e "  [✓] Auto SSH-Key successfully updated.\n"
 		sys_log "AMTM Update: (v$REMOTE_VERSION) successfully installed."
 		return 0
     fi
@@ -345,12 +345,12 @@ ssh_init() {
 
 node_auth() {
 	if [ ! -s "$SSH_KEY" ]; then
-        echo -e "\n$YL[!] Main Router SSH Key not found.$NC"
+        echo -e "\n$YL[!] RSA Keys not found.$NC"
         pause
         return
     fi
 
-    echo -e "\n$GR[✓] Main Router SSH Key found at: $WH$SSH_KEY$NC\n"
+    echo -e "\n$GR[✓] RSA Key found at: $WH$SSH_KEY$NC\n"
     echo -e "$BL=================================================="
     echo -e "$NC         Verifying Node Authentication            "
     echo -e "$BL==================================================\n"
@@ -459,7 +459,7 @@ node_auth() {
 
 ssh_keys() {
 	if [ -f "$SSH_KEY" ]; then
-        echo -e "\n$YL[!] Main Router SSH Key already exists.$NC"
+        echo -e "\n$YL[!] RSA Keys already exists.$NC"
         pause
         return 0
     fi
@@ -474,7 +474,7 @@ ssh_keys() {
 
     if [ ! -f "/jffs/.ssh/id_dropbear" ]; then
         while true; do
-            printf "$NC\nDo you want to create RSA Key (y/n): "; read -r update
+            printf "$NC\nDo you want to create RSA Keys (y/n): "; read -r update
             case "$update" in y|Y) break ;; n|N) return ;; *) freeze 2 ;; esac
         done
         echo -e "\n$YL[i] Creating RSA Key in /jffs/.ssh/$NC\n"
@@ -521,14 +521,21 @@ ssh_keys() {
 
 del_ssh_keys() {
 	if [ -f "$SSH_KEY" ]; then
-		echo -e "\n$YL[!] Main Router SSH Key exists.$NC\n"
+		echo -e "\n$YL[!] RSA Keys exist already.$NC\n"
         while true; do
-            printf "Do you want to delete Key? (y/n): "; read -r delete
+            if [ "$unintsall_script" = "1" ]; then
+            printf "$RD[!] Uninstalling Auto SSH-Key$NC, Do you want to delete RSA Keys? (y/n): "; read -r delete
+            else
+                printf "Do you want to delete Key? (y/n): "; read -r delete
+            fi
             case "$delete" in y|Y) break ;; n|N) return ;; *) freeze ;; esac
         done
 	else
-		echo -e "\n$YL[!] No active RSA key found to delete.$NC"
-		pause
+		echo -e "\n$YL[!] No active RSA keys found to delete.$NC"
+		if [ "$unintsall_script" = "1" ]; then
+            return
+        fi
+        pause
         return
 	fi
 
@@ -551,15 +558,20 @@ del_ssh_keys() {
 
 	rm -f /jffs/.ssh/id_dropbear /jffs/.ssh/id_dropbear.pub /root/.ssh/id_dropbear >/dev/null 2>&1
 	rm -f /jffs/.ssh/known_hosts /root/.ssh/known_hosts >/dev/null 2>&1
+    sed -i '/# sshpairs/d' "$SS_FILE" 2>/dev/null
     nvram get sshd_authkeys > /root/.ssh/authorized_keys
 	chmod 600 /root/.ssh/authorized_keys
 	echo -e "\n$GR[✓] RSA Keys removed successfully.$NC"
 	ssh_init
-    pause
+    if [ "$unintsall_script" = "1" ]; then
+        return
+    else
+        pause || return
+    fi
 }
 
 do_uninstall() {
-    echo -e "\n$RD[!] WARNING: Removing Auto SSH Key...$NC\n"
+    echo -e "\n$RD[!] WARNING: Removing Auto SSH-Key...$NC\n"
     while true; do
         printf "Are you sure? (y/n): "; read -r confirm
         case "$confirm" in y|Y) break ;; n|N) return ;; *) freeze ;; esac
@@ -568,12 +580,14 @@ do_uninstall() {
 	if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 	ssh_init
 
+    unintsall_script="1"
+    del_ssh_keys || return 1
+
     rm -rf "$INSTALL_DIR" 2>/dev/null
     sed -i "\|$REPORT_SCRIPT|d" "$PROFILE_ADD" 2>/dev/null
 
 	sys_log "(v$SCRIPT_VERSION) successfully uninstalled."
-	echo -e "\n$GR[+] System cleaned. SSH Keys and Fingerprints preserved in /jffs/.ssh$NC"
-	echo -e "\n$GR[+] Success: Auto SSH Key uninstalled.$NC"
+	echo -e "\n$GR[+] Success: Auto SSH-Key uninstalled.$NC"
 	pause
 }
 
