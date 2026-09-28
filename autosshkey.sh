@@ -520,9 +520,9 @@ ssh_keys() {
 }
 
 del_ssh_keys() {
-	KEY_NO=false
     if [ -f "$SSH_KEY" ]; then
 		echo -e "\n$YL[!] RSA Keys exist.$NC\n"
+        KEY_NO=false
         while true; do
             if [ "$unintsall_script" = "1" ]; then
                 printf "Uninstalling Auto SSH-Key, Do you want to delete RSA Keys? (y/n): "; read -r delete
@@ -533,7 +533,9 @@ del_ssh_keys() {
                 y|Y)
                     break ;;
                 n|N)
-                    if [ "$unintsall_script" = "1" ]; then KEY_NO=true; fi
+                    if [ "$unintsall_script" = "1" ]; then
+                        KEY_NO=true
+                    fi
                     return ;;
                 *)
                     freeze ;;
@@ -585,20 +587,17 @@ do_uninstall() {
         printf "Are you sure? (y/n): "; read -r confirm
         case "$confirm" in y|Y) break ;; n|N) return ;; *) freeze ;; esac
     done
-
 	if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 	ssh_init
 
     unintsall_script="1"
     del_ssh_keys || return 1
-
     if [ "$KEY_NO" = true ]; then
         echo -e "\n$YL[!] RSS Keys and Fingerprints preserved in /jffs/.ssh$NC"
     fi
 
     rm -rf "$INSTALL_DIR" 2>/dev/null
     sed -i "\|$REPORT_SCRIPT|d" "$PROFILE_ADD" 2>/dev/null
-
 	sys_log "(v$SCRIPT_VERSION) successfully uninstalled."
 	echo -e "\n$GR[+] Success: Auto SSH-Key uninstalled.$NC"
 	pause
