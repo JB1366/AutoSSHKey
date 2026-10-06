@@ -524,7 +524,7 @@ del_ssh_keys() {
 		echo -e "\n$YL[!] RSA Keys exist.$NC\n"
         KEY_NO=false
         while true; do
-            if [ "$unintsall_script" = "1" ]; then
+            if [ "$uninstall_script" = "1" ]; then
                 printf "Uninstalling Auto SSH-Key, Do you want to delete RSA Keys? (y/n): "; read -r delete
             else
                 printf "Do you want to delete Keys? (y/n): "; read -r delete
@@ -533,7 +533,7 @@ del_ssh_keys() {
                 y|Y)
                     break ;;
                 n|N)
-                    if [ "$unintsall_script" = "1" ]; then
+                    if [ "$uninstall_script" = "1" ]; then
                         KEY_NO=true
                     fi
                     return ;;
@@ -543,7 +543,7 @@ del_ssh_keys() {
         done
 	else
 		echo -e "\n$YL[!] No active RSA keys found to delete.$NC"
-		if [ "$unintsall_script" = "1" ]; then
+		if [ "$uninstall_script" = "1" ]; then
             return
         fi
         pause
@@ -574,7 +574,7 @@ del_ssh_keys() {
 	chmod 600 /root/.ssh/authorized_keys
 	echo -e "\n$GR[✓] RSA Keys removed successfully.$NC"
 	ssh_init
-    if [ "$unintsall_script" = "1" ]; then
+    if [ "$uninstall_script" = "1" ]; then
         return
     else
         pause || return
@@ -590,7 +590,7 @@ do_uninstall() {
 	if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 	ssh_init
 
-    unintsall_script="1"
+    uninstall_script="1"
     del_ssh_keys || return 1
     if [ "$KEY_NO" = true ]; then
         echo -e "\n$YL[!] RSS Keys and Fingerprints preserved in /jffs/.ssh$NC"
