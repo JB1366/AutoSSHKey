@@ -21,7 +21,7 @@
 #                                                             #
 #=============================================================#
 
-SCRIPT_VERSION="1.0.2"
+SCRIPT_VERSION="1.0.3"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -56,25 +56,24 @@ show_header() {
 install_menu() {
 	while true; do
 		show_header
-        echo -e "$BL=================================================="
-        check_version
-        echo -e "$BL=================================================="
-        echo -e "$NC SSH-Key: $KEY                         Port: $PORT"
-        echo -e "$BL=================================================="
-        echo -e "                                                     "
-        echo -e "  $N1  Install/Update                                "
-        echo -e "  $N2  Uninstall                                     "
-        echo -e "  $N3  Generate RSA Keys & Provision AiMesh Nodes    "
-        echo -e "  $N4  Remove RSA Keys                               "
-        echo -e "  $N5  View Authorized Keys                          "
-        echo -e "  $N6  View Known Hosts                              "
-        echo -e "  $N7  Node Authentication                           "
-        echo -e "                                                     "
-        echo -e "  $LE  Exit                                          "
-        echo -e "                                                     "
-        echo -e "$BL=================================================="
+        printb "╔═════════════════════════════════════════════════════════╗"
+		check_version
+		printb "╠═════════════════════════════════════════════════════════╣"
+		printm "  SSH-Key: $KEY                                Port: $PORT"
+		printb "╠═════════════════════════════════════════════════════════╣"
+		printm ""
+        printm "  $N1  Install/Update"
+        printm "  $N2  Uninstall"
+        printm "  $N3  Generate RSA Keys & Provision AiMesh Nodes"
+        printm "  $N4  Remove RSA Keys"
+        printm "  $N5  View Authorized Keys"
+        printm "  $N6  View Known Hosts"
+        printm "  $N7  Node Authentication"
+        printm ""
+        printb "╚═════════════════════════════════════════════════════════╝"
+        printf "%b" "$MB"
         while true; do
-            printf "\n$NC Selection: "; read -r choice
+            printf "\n$NC Selection [${BL}E$NC=Exit]: "; read -r choice
             case "$choice" in
                 1) do_install; break ;;
 				2|3|4|5|6|7)
@@ -83,22 +82,22 @@ install_menu() {
                         2) do_uninstall ;;
                         3) ssh_keys ;;
                         4) del_ssh_keys ;;
-                        5) echo -e "\n$BL================ Authorized Keys =================$NC\n"
+                        5) echo -e "\n$BL════════════════════ Authorized Keys ══════════════════════$NC\n"
                             if [ -f "/root/.ssh/authorized_keys" ]; then
                                 cat /root/.ssh/authorized_keys
                             else
                                 echo -e "$YL[!] File not found.$NC"
                             fi
-                            echo -e "\n\n$BL==================================================$NC"
+                            echo -e "\n\n$BL═══════════════════════════════════════════════════════════$NC"
                             pause
                             ;;
-                        6) echo -e "\n$BL================== Known Hosts  ==================$NC\n"
+                        6) echo -e "\n$BL══════════════════════ Known Hosts ════════════════════════$NC\n"
                             if [ -f "/jffs/.ssh/known_hosts" ]; then
                                 cat /jffs/.ssh/known_hosts
                             else
                                 echo -e "$YL[!] File not found.$NC"
                             fi
-                            echo -e "\n$BL==================================================$NC"
+                            echo -e "\n$BL═══════════════════════════════════════════════════════════$NC"
                             pause
                             ;;
                         7) node_auth ;;
@@ -133,6 +132,7 @@ check_version() {
             STATE="UP_TO_DATE"
         fi
     fi
+   STATE="HASH_DIFF"
     case "$mode" in
         do_install)
             case "$STATE" in
@@ -148,12 +148,13 @@ check_version() {
             ;;
         *)
             case "$STATE" in
-                OFFLINE)       echo -e "$STATUS $RD[Offline]          [GitHub Unreachable]$NC" ;;
-                NOT_INSTALLED) echo -e "$STATUS $GR[Not Installed]$NC Latest Available:$GR v$REMOTE_VERSION$NC"; N1="$BL(1)" ;;
-                OUTDATED)      echo -e "$STATUS $GR[v$REMOTE_VERSION Available]$NC     $CURRENT" ;;
-                HASH_DIFF)     echo -e "$STATUS $GR[Hash Update Available]$NC $CURRENT" ;;
-                UP_TO_DATE|*)  echo -e "$STATUS $GR[Up to date]$NC           $CURRENT" ;;
+                OFFLINE)       SL=" $STATUS $RD[Offline]                 [GitHub Unreachable]" ;;
+                NOT_INSTALLED) SL=" $STATUS $GR[Not Installed]$NC       Latest Available:$GR v$REMOTE_VERSION$NC";  N1="$BL(1)" ;;
+                OUTDATED)      SL=" $STATUS $GR[New Version ${WH}v$REMOTE_VERSION$GR Available]$NC $CURRENT" ;;
+                HASH_DIFF)     SL=" $STATUS $GR[Hash Update Available]$NC        $CURRENT" ;;
+                UP_TO_DATE|*)  SL=" $STATUS $GR[Up to date]$NC                   $CURRENT" ;;
             esac
+            printm "$SL"
             ;;
     esac
 }
@@ -174,6 +175,30 @@ version_compare() {
         }'
 }
 
+printm() {
+    local box_color text target esc plain len pad line i
+    box_color="$BL"
+    text="$1"
+    target="${2:-57}"
+    esc=$(printf '\033')
+    plain=$(printf "%b" "$text" | sed "s/${esc}\[[0-9;]*m//g")
+    len=${#plain}
+    pad=$((target - len))
+    [ "$pad" -lt 0 ] && pad=0
+    line="${box_color}║$NC${text}"
+    i=0
+    while [ "$i" -lt "$pad" ]; do
+        line="${line} "
+        i=$((i + 1))
+    done
+    line="${line}${box_color}║$NC\n"
+    MB="${MB}${line}"
+}
+
+printb() {
+    MB="${MB}$BL$1$NC\n"
+}
+
 menu_vars() {
     if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 	trap 'printf "\033[0m"' 0; trap 'exit 130' INT TERM HUP
@@ -190,8 +215,10 @@ menu_vars() {
     SS_FILE="/jffs/scripts/services-start"
     PROFILE_ADD="/jffs/configs/profile.add"
 
+    MB=""; echo -e "$BL"
     PORT="$GR$SSH_PORT$NC"
-    ON="${GR}ON$NC"; OFF="${RD}OFF$NC"; echo -e "$BL"
+    ON="${GR}ON$NC"; OFF="${RD}OFF$NC"
+
     STATUS="$NC STATUS:"
     CURRENT="CURRENT:$GR v$SCRIPT_VERSION$DEV$NC"
     case "$SSH_KEY" in "") KEY="${RD}NO$NC" ;; *) KEY="${GR}YES$NC" ;; esac
@@ -351,9 +378,9 @@ node_auth() {
     fi
 
     echo -e "\n$GR[✓] RSA Key found at: $WH$SSH_KEY$NC\n"
-    echo -e "$BL=================================================="
-    echo -e "$NC         Verifying Node Authentication            "
-    echo -e "$BL==================================================\n"
+    echo -e "$BL═══════════════════════════════════════════════════════════"
+    echo -e "$NC              Verifying Node Authentication                "
+    echo -e "$BL═══════════════════════════════════════════════════════════\n"
 
     AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' |  sort -t . -k 4,4n)
     if [ -z "$AIMESH_NODES" ]; then
@@ -506,12 +533,12 @@ ssh_keys() {
         echo "cp /jffs/.ssh/known_hosts /tmp/home/root/.ssh/known_hosts # sshpairs persistence" >> "$SS_FILE"
     fi
 
-	echo -e "$BL=================================================="
-	echo -e "$NC               ACTION REQUIRED NOW                "
-    echo -e "$BL=================================================="
-    echo -e "                                                     "
-	echo -e "[*] STEP 1: Go to Asus WebGUI > AiMesh > Management  "
-	echo -e "[*] STEP 2: Click 'Reboot Node' for each node\n      "
+	echo -e "$BL═══════════════════════════════════════════════════════════"
+	echo -e "$NC                   ACTION REQUIRED NOW                     "
+    echo -e "$BL═══════════════════════════════════════════════════════════"
+    echo -e "                                                              "
+	echo -e "[*] STEP 1: Go to Asus WebGUI > AiMesh > Management           "
+	echo -e "[*] STEP 2: Click 'Reboot Node' for each node\n               "
 	echo -e "$YL[!] Do not press [Enter] until Nodes are confirmed to be back online.\n"
 	echo -e "$BL[*] TIP: If a node is missing after authentication,                    "
 	echo -e "$BL[*]      use option #7 to reauthenticate.                           $NC"

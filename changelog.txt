@@ -2,6 +2,8 @@
 # Auto SSH-Key - Changelog #
 #==========================#
 
+v1.0.3-now available on AMTM.
+      -menu upgrades.
 v1.0.2-minor updates.
 v1.0.1-minor updates.
 v1.0.0-Initial Release.
