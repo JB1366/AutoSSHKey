@@ -1,4 +1,4 @@
-AutoSSHKey - availanle on AMTM!<br>
+AutoSSHKey - available on AMTM!<br>
 \
 \
 to install script:
