@@ -132,7 +132,6 @@ check_version() {
             STATE="UP_TO_DATE"
         fi
     fi
-   STATE="HASH_DIFF"
     case "$mode" in
         do_install)
             case "$STATE" in
