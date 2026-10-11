@@ -21,7 +21,7 @@
 #                                                             #
 #=============================================================#
 
-SCRIPT_VERSION="1.0.3"
+SCRIPT_VERSION="1.0.4"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -84,7 +84,7 @@ install_menu() {
                         4) del_ssh_keys ;;
                         5) echo -e "\n$BL════════════════════ Authorized Keys ══════════════════════$NC\n"
                             if [ -f "/root/.ssh/authorized_keys" ]; then
-                                cat /root/.ssh/authorized_keys
+                                tr '>' '\n' < /root/.ssh/authorized_keys
                             else
                                 echo -e "$YL[!] File not found.$NC"
                             fi

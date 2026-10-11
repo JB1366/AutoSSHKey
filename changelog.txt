@@ -2,6 +2,7 @@
 # Auto SSH-Key - Changelog #
 #==========================#
 
+v1.0.4-add optimized view for auth_keys with '>'.
 v1.0.3-now available on AMTM.
       -menu upgrades.
 v1.0.2-minor updates.
