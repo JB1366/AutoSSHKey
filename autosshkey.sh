@@ -21,7 +21,7 @@
 #                                                             #
 #=============================================================#
 
-SCRIPT_VERSION="1.0.4"
+SCRIPT_VERSION="1.0.5"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
