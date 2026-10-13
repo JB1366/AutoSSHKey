@@ -59,7 +59,7 @@ install_menu() {
         printb "╔═════════════════════════════════════════════════════════╗"
 		check_version
 		printb "╠═════════════════════════════════════════════════════════╣"
-		printm "  SSH-Key: $KEY                                Port: $PORT"
+		printm "  SSH-Key: $KEY                               Port: $PORT"
 		printb "╠═════════════════════════════════════════════════════════╣"
 		printm ""
         printm "  $N1  Install/Update"
@@ -115,7 +115,7 @@ check_version() {
     local mode="$1" version_cmp=""
     froze() { return 0; }
     if [ ! -f "$REPORT_SCRIPT" ]; then
-        STATE="NOT_INSTALLED"
+        STATE="NOT_INSTALLED";  N1="$BL(1)"
         froze() { freeze 2; return 1; }
     elif [ -z "$REMOTE_VERSION" ]; then
         STATE="OFFLINE"
@@ -146,14 +146,13 @@ check_version() {
             esac
             ;;
         *)
-            case "$STATE" in
-                OFFLINE)       SL=" $STATUS $RD[Offline]                 [GitHub Unreachable]" ;;
-                NOT_INSTALLED) SL=" $STATUS $GR[Not Installed]$NC       Latest Available:$GR v$REMOTE_VERSION$NC";  N1="$BL(1)" ;;
-                OUTDATED)      SL=" $STATUS $GR[New Version ${WH}v$REMOTE_VERSION$GR Available]$NC $CURRENT" ;;
-                HASH_DIFF)     SL=" $STATUS $GR[Hash Update Available]$NC        $CURRENT" ;;
-                UP_TO_DATE|*)  SL=" $STATUS $GR[Up to date]$NC                   $CURRENT" ;;
+             case "$STATE" in
+                OFFLINE)       printm " $STATUS $RD[Offline]                [GitHub Unreachable]" ;;
+                NOT_INSTALLED) printm " $STATUS $GR[Not Installed]$NC      Latest Available:$GR v$REMOTE_VERSION$NC" ;;
+                OUTDATED)      printm " $STATUS $GR[New Version ${WH}v$REMOTE_VERSION$GR Available] $CURRENT" ;;
+                HASH_DIFF)     printm " $STATUS $GR[Hash Update Available]      $CURRENT" ;;
+                UP_TO_DATE|*)  printm " $STATUS $GR[Up to date]                 $CURRENT" ;;
             esac
-            printm "$SL"
             ;;
     esac
 }
@@ -219,7 +218,7 @@ menu_vars() {
     ON="${GR}ON$NC"; OFF="${RD}OFF$NC"
 
     STATUS="$NC STATUS:"
-    CURRENT="CURRENT:$GR v$SCRIPT_VERSION$DEV$NC"
+    CURRENT="$NC CURRENT:$GR v$SCRIPT_VERSION$DEV$NC"
     case "$SSH_KEY" in "") KEY="${RD}NO$NC" ;; *) KEY="${GR}YES$NC" ;; esac
 }
 
@@ -361,7 +360,6 @@ check_github() {
 ssh_init() {
 	NODE_USER=$(nvram get http_username)
 	SSH_PORT=$(nvram get sshd_port)
-    SSH_PORT=${SSH_PORT:-22}
 	if [ -f "/root/.ssh/id_dropbear" ]; then
         SSH_KEY="/root/.ssh/id_dropbear"
 	else
@@ -381,7 +379,12 @@ node_auth() {
     echo -e "$NC              Verifying Node Authentication                "
     echo -e "$BL═══════════════════════════════════════════════════════════\n"
 
-    AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' |  sort -t . -k 4,4n)
+    AIMESH_NODES=$(nvram get asus_device_list |
+    sed 's/</\n/g' |
+    grep '>2$' |
+    awk -F '>' '{print $2 "|" $3}' |
+    sort -t . -k 4,4n)
+
     if [ -z "$AIMESH_NODES" ]; then
         echo -e "$RD[!] No AiMesh Nodes detected in NVRAM.$NC"
         TOTAL_NODES=0; any_success=0
