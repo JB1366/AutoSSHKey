@@ -78,12 +78,12 @@ install_menu() {
         printm "  $N7  Node Authentication"
         printm ""
         printb "╚═════════════════════════════════════════════════════════╝"
-        printf "%b" "$MB"
+        printf "%b" "$menu_buffer"
         while true; do
             printf "\n$NC Selection [${BL}E$NC=Exit]: "; read -r choice
             case "$choice" in
                 1) do_install; break ;;
-				2|3|4|5|6|7)
+				2|3|4|5|6|7|dev)
                     froze || continue
                     case "$choice" in
                         2) do_uninstall ;;
@@ -198,11 +198,11 @@ printm() {
         i=$((i + 1))
     done
     line="${line}${box_color}║$NC\n"
-    MB="${MB}${line}"
+    menu_buffer="${menu_buffer}${line}"
 }
 
 printb() {
-    MB="${MB}$BL$1$NC\n"
+    menu_buffer="${menu_buffer}$BL$1$NC\n"
 }
 
 menu_vars() {
@@ -221,7 +221,7 @@ menu_vars() {
     SS_FILE="/jffs/scripts/services-start"
     PROFILE_ADD="/jffs/configs/profile.add"
 
-    MB=""; echo -e "$BL"
+    menu_buffer=""; echo -e "$BL"
     PORT="$GR$SSH_PORT$NC"
     ON="${GR}ON$NC"; OFF="${RD}OFF$NC"
 
@@ -397,19 +397,19 @@ check_github() {
 set_github_branch() {
     while true; do
         show_header
-        printb "╔════════════════════════════════════════════════════════════╗"
+        printb "╔═════════════════════════════════════════════════════════╗"
         printm "                      Set Github Branch"
-        printb "╠════════════════════════════════════════════════════════════╣"
+        printb "╠═════════════════════════════════════════════════════════╣"
         printm "  Branch: [$BN]                $CURRENT"
-        printb "╠════════════════════════════════════════════════════════════╣"
+        printb "╠═════════════════════════════════════════════════════════╣"
         printm ""
         printm "  $N1 main (JB1366)"
         printm "  $N2 Development (JB1366)"
         printm ""
-        printb "╚════════════════════════════════════════════════════════════╝"
+        printb "╚═════════════════════════════════════════════════════════╝"
         printf "%b" "$menu_buffer"
         while true; do
-            selection
+            printf "\n$NC Selection [${BL}E$NC=Exit]: "; read -r choice
             case "$choice" in
                 1) BRANCH="0" ;;
                 2) BRANCH="1" ;;
