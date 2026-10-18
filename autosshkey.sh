@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#=============================================================#
+#═════════════════════════════════════════════════════════════#
 #                                                             #
 #              █████╗ ██╗   ██╗████████╗ ██████╗              #
 #             ██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗             #
@@ -19,19 +19,26 @@
 #     Copyright (c) 2026 JB_1366 - All Rights Reserved        #
 #         https://github.com/JB1366/AutoSSHKey                #
 #                                                             #
-#=============================================================#
+#═════════════════════════════════════════════════════════════#
+
+if [ "$0" != "/jffs/scripts/autosshkey.sh" ] && [ -f "$0" ]; then
+    mkdir -p /jffs/scripts
+    cp -f "$0" /jffs/scripts/autosshkey.sh
+    chmod +x /jffs/scripts/autosshkey.sh
+    exec /jffs/scripts/autosshkey.sh "$@"
+fi
 
 SCRIPT_VERSION="1.0.5"
-INSTALL_DIR="/jffs/addons/AutoSSHKey"
-REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
-CONFIG="$INSTALL_DIR/webui.conf"
+REPORT_SCRIPT="/jffs/scripts/autosshkey.sh"
+CONFIG_DIR="/jffs/addons/AutoSSHKey.d"
+CONFIG="$CONFIG_DIR/webui.conf"
 if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 unset LD_LIBRARY_PATH
 
 show_header() {
     clear; menu_vars
-    #====================================================================#
+    #════════════════════════════════════════════════════════════════════#
     echo -e "                                                            "
     echo -e "              █████╗ ██╗   ██╗████████╗ ██████╗             "
     echo -e "             ██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗            "
@@ -50,7 +57,7 @@ show_header() {
     echo -e "    $JB_1366                                                "
     echo -e "          $JB1366                                           "
     echo -e "                                                            "
-    #====================================================================#
+    #════════════════════════════════════════════════════════════════════#
 }
 
 install_menu() {
@@ -228,7 +235,6 @@ do_install() {
         pause; return 1
     fi
 
-    mkdir -p "$INSTALL_DIR" 2>/dev/null
     if [ ! -f "$CONFIG" ]; then touch "$CONFIG"; fi
 
 	local is_update=0
@@ -243,13 +249,6 @@ do_install() {
 
     echo -e "\n$GR[+] Downloading latest version (${NC}v$REMOTE_VERSION$GR)$NC"
     do_update || return 1
-
-    mkdir -p "$(dirname "$PROFILE_ADD")"
-    [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
-    if ! grep -q "alias as=" "$PROFILE_ADD" 2>/dev/null; then
-        echo "alias as=\"$REPORT_SCRIPT\" # added by Auto SSH-Key" >> "$PROFILE_ADD"
-        echo -e "\n$GR[+] Adding alias 'as' to $PROFILE_ADD$NC"
-    fi
 
 	if [ "$is_update" = "1" ]; then
 		echo -e "\n$BL[✓] Auto SSH-Key successfully installed.$NC"
@@ -266,10 +265,39 @@ do_install() {
     fi
 
     echo -e "\n$GR[+] Processing Auto SSH-Key Files...$NC\n"
+
+    mkdir -p "$(dirname "$PROFILE_ADD")"
+    [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
+    if ! grep -q "alias as=" "$PROFILE_ADD" 2>/dev/null; then
+        echo "alias as=\"$REPORT_SCRIPT\" # added by Auto SSH-Key" >> "$PROFILE_ADD"
+        echo -e "\n$GR[+] Adding alias 'as' to $PROFILE_ADD$NC"
+    fi
+
     SCRIPT_VERSION="$REMOTE_VERSION"
     sys_log "(v$REMOTE_VERSION) successfully installed."
     echo -e "$GR[✓] SUCCESS: Installation complete!$NC\n"
 	pause
+}
+
+dir_upgrade() {
+    # If the new .d directory already exists, migration is complete—skip everything
+    [ -d "/jffs/addons/AutoSSHKey.d" ] && return
+
+    PROFILE_ADD="/jffs/configs/profile.add"
+
+    is_update=1
+
+    # Migrate legacy folder structure
+    if [ -d "/jffs/addons/AutoSSHKey" ]; then
+        rm -f /jffs/addons/AutoSSHKey/autosshkey.sh 2>/dev/null
+        mv /jffs/addons/AutoSSHKey /jffs/addons/AutoSSHKey.d 2>/dev/null
+    fi
+
+    # Update profile.add (Alias)
+    mkdir -p "$(dirname "$PROFILE_ADD")"
+    [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
+    sed -i '/alias as=/d' "$PROFILE_ADD"
+    echo "alias as=\"$REPORT_SCRIPT\" # added by Auto SSH-Key" >> "$PROFILE_ADD"
 }
 
 do_update() {
@@ -625,7 +653,7 @@ do_uninstall() {
         echo -e "\n$YL[!] RSS Keys and Fingerprints preserved in /jffs/.ssh$NC"
     fi
 
-    rm -rf "$INSTALL_DIR" 2>/dev/null
+    rm -rf "CONFIG_DIR" 2>/dev/null
     sed -i "\|$REPORT_SCRIPT|d" "$PROFILE_ADD" 2>/dev/null
 	sys_log "(v$SCRIPT_VERSION) successfully uninstalled."
 	echo -e "\n$GR[+] Success: Auto SSH-Key uninstalled.$NC"
@@ -641,7 +669,7 @@ freeze() { printf "\033[%dA\033[J" "${1:-1}"; }
 check_github; ssh_init
 
 hasta() {
-echo -e "\n\n\n$BL" #============================================================================================================#
+echo -e "\n\n\n$BL" #════════════════════════════════════════════════════════════════════════════════════════════════════════════#
 echo -e "                                                                                                                        "
 echo -e "                                                                                                                        "
 echo -e "             ██╗  ██╗ █████╗ ███████╗████████╗ █████╗      ██╗      █████╗      ██╗   ██╗██╗███████╗████████╗ █████╗    "
@@ -652,9 +680,10 @@ echo -e "    ██║      ██║  ██║██║  ██║████
 echo -e "    ██║      ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝     ╚══════╝╚═╝  ╚═╝       ╚═══╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝   "
 echo -e "    ╚═╝                                                                                                                 "
 echo -e "                                                                                                                        "
-echo -e "$NC\n\n\n" #============================================================================================================#
+echo -e "$NC\n\n\n" #════════════════════════════════════════════════════════════════════════════════════════════════════════════#
 }
 
+dir_upgrade
 case "$1" in
     amtmupdate)
 		shift
