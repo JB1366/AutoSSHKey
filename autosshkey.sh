@@ -108,6 +108,7 @@ install_menu() {
                             pause
                             ;;
                         7) node_auth ;;
+                        dev) set_github_branch ;;
                     esac
                     break ;;
                 e|E) clear; hasta; exit 0 ;;
@@ -227,6 +228,8 @@ menu_vars() {
     STATUS="$NC STATUS:"
     CURRENT="$NC CURRENT:$GR v$SCRIPT_VERSION$DEV$NC"
     case "$SSH_KEY" in "") KEY="${RD}NO$NC" ;; *) KEY="${GR}YES$NC" ;; esac
+
+    BN="$GR$BRANCH_NAME$NC"
 }
 
 do_install() {
@@ -361,7 +364,13 @@ wr_sha256() {
 }
 
 check_github() {
-    GITHUB="https://raw.githubusercontent.com/JB1366/AutoSSHKey/main/autosshkey.sh"
+    case "$BRANCH" in
+        1) GIT="JB1366"; BRANCH_NAME="Development"; DEV="D" ;;
+        *) GIT="JB1366"; BRANCH_NAME="main"; DEV="" ;;
+    esac
+
+    GITHUB="https://raw.githubusercontent.com/$GIT/AutoSSHKey/$BRANCH_NAME/autosshkey.sh"
+
     REMOTE_TMP="/tmp/wr_remote.tmp"; LOCAL_HASH=""; REMOTE_HASH=""
     if curl -sfL --retry 3 "$GITHUB" -o "$REMOTE_TMP" 2>/dev/null && [ -s "$REMOTE_TMP" ]; then
         REMOTE_VERSION=$(grep "SCRIPT_VERSION=" "$REMOTE_TMP" | head -n 1 | cut -d'"' -f2 | tr -cd '0-9.')
@@ -383,6 +392,47 @@ check_github() {
         REMOTE_HASH=""
     fi
     rm -f "$REMOTE_TMP"
+}
+
+set_github_branch() {
+    while true; do
+        show_header
+        printb "╔════════════════════════════════════════════════════════════╗"
+        printm "                      Set Github Branch"
+        printb "╠════════════════════════════════════════════════════════════╣"
+        printm "  Branch: [$BN]                $CURRENT"
+        printb "╠════════════════════════════════════════════════════════════╣"
+        printm ""
+        printm "  $N1 main (JB1366)"
+        printm "  $N2 Development (JB1366)"
+        printm ""
+        printb "╚════════════════════════════════════════════════════════════╝"
+        printf "%b" "$menu_buffer"
+        while true; do
+            selection
+            case "$choice" in
+                1) BRANCH="0" ;;
+                2) BRANCH="1" ;;
+                e|E) break 2 ;;
+                *) freeze 2; continue ;;
+            esac
+            break
+        done
+        if grep -q "^BRANCH=" "$CONFIG"; then
+            sed -i "s/^BRANCH=.*/BRANCH=\"$BRANCH\"/" "$CONFIG"
+        else
+            echo "BRANCH=\"$BRANCH\"" >> "$CONFIG"
+        fi
+        check_github
+        BN="$GR$BRANCH_NAME$NC"
+        printf "$NC\nPress $BL[Enter]$NC to switch to [$BN] branch & restart script..."; read -r restart
+        if do_update; then
+            exec "$REPORT_SCRIPT" install "$@"
+        else
+            echo -e "\n$RD[!]Error: Branch update failed!$NC" >&2
+            pause
+        fi
+    done
 }
 
 ssh_init() {
