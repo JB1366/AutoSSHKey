@@ -21,17 +21,10 @@
 #                                                             #
 #═════════════════════════════════════════════════════════════#
 
-if [ "$0" != "/jffs/scripts/autosshkey.sh" ] && [ -f "$0" ]; then
-    mkdir -p /jffs/scripts
-    cp -f "$0" /jffs/scripts/autosshkey.sh
-    chmod +x /jffs/scripts/autosshkey.sh
-    exec /jffs/scripts/autosshkey.sh "$@"
-fi
-
 SCRIPT_VERSION="1.0.5"
-REPORT_SCRIPT="/jffs/scripts/autosshkey.sh"
-CONFIG_DIR="/jffs/addons/AutoSSHKey.d"
-CONFIG="$CONFIG_DIR/webui.conf"
+INSTALL_DIR="/jffs/addons/AutoSSHKey"
+REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
+CONFIG="$INSTALL_DIR/webui.conf"
 if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 unset LD_LIBRARY_PATH
@@ -238,6 +231,7 @@ do_install() {
         pause; return 1
     fi
 
+    mkdir -p "$INSTALL_DIR" 2>/dev/null
     if [ ! -f "$CONFIG" ]; then touch "$CONFIG"; fi
 
 	local is_update=0
@@ -280,27 +274,6 @@ do_install() {
     sys_log "(v$REMOTE_VERSION) successfully installed."
     echo -e "$GR[✓] SUCCESS: Installation complete!$NC\n"
 	pause
-}
-
-dir_upgrade() {
-    # If the new .d directory already exists, migration is complete—skip everything
-    [ -d "/jffs/addons/AutoSSHKey.d" ] && return
-
-    PROFILE_ADD="/jffs/configs/profile.add"
-
-    is_update=1
-
-    # Migrate legacy folder structure
-    if [ -d "/jffs/addons/AutoSSHKey" ]; then
-        rm -f /jffs/addons/AutoSSHKey/autosshkey.sh 2>/dev/null
-        mv /jffs/addons/AutoSSHKey /jffs/addons/AutoSSHKey.d 2>/dev/null
-    fi
-
-    # Update profile.add (Alias)
-    mkdir -p "$(dirname "$PROFILE_ADD")"
-    [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
-    sed -i '/alias as=/d' "$PROFILE_ADD"
-    echo "alias as=\"$REPORT_SCRIPT\" # added by Auto SSH-Key" >> "$PROFILE_ADD"
 }
 
 do_update() {
@@ -703,7 +676,7 @@ do_uninstall() {
         echo -e "\n$YL[!] RSS Keys and Fingerprints preserved in /jffs/.ssh$NC"
     fi
 
-    rm -rf "CONFIG_DIR" 2>/dev/null
+    rm -rf "$INSTALL_DIR" 2>/dev/null
     sed -i "\|$REPORT_SCRIPT|d" "$PROFILE_ADD" 2>/dev/null
 	sys_log "(v$SCRIPT_VERSION) successfully uninstalled."
 	echo -e "\n$GR[+] Success: Auto SSH-Key uninstalled.$NC"
@@ -733,7 +706,6 @@ echo -e "                                                                       
 echo -e "$NC\n\n\n" #════════════════════════════════════════════════════════════════════════════════════════════════════════════#
 }
 
-dir_upgrade
 case "$1" in
     amtmupdate)
 		shift
