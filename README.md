@@ -5,4 +5,4 @@ curl -sfL https://raw.githubusercontent.com/JB1366/AutoSSHKey/main/autosshkey.sh
 ```
 \
 \
-![Install Pic](https://raw.githubusercontent.com/JB1366/AutoSSHKey/blob/main/install.png
+![Install Pic](https://raw.githubusercontent.com/JB1366/AutoSSHKey/main/install.png)
