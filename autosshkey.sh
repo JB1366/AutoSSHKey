@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#=============================================================#
+#═════════════════════════════════════════════════════════════#
 #                                                             #
 #              █████╗ ██╗   ██╗████████╗ ██████╗              #
 #             ██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗             #
@@ -19,9 +19,9 @@
 #     Copyright (c) 2026 JB_1366 - All Rights Reserved        #
 #         https://github.com/JB1366/AutoSSHKey                #
 #                                                             #
-#=============================================================#
+#═════════════════════════════════════════════════════════════#
 
-SCRIPT_VERSION="1.0.4"
+SCRIPT_VERSION="1.0.5"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -31,7 +31,7 @@ unset LD_LIBRARY_PATH
 
 show_header() {
     clear; menu_vars
-    #====================================================================#
+    #════════════════════════════════════════════════════════════════════#
     echo -e "                                                            "
     echo -e "              █████╗ ██╗   ██╗████████╗ ██████╗             "
     echo -e "             ██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗            "
@@ -50,7 +50,7 @@ show_header() {
     echo -e "    $JB_1366                                                "
     echo -e "          $JB1366                                           "
     echo -e "                                                            "
-    #====================================================================#
+    #════════════════════════════════════════════════════════════════════#
 }
 
 install_menu() {
@@ -59,7 +59,7 @@ install_menu() {
         printb "╔═════════════════════════════════════════════════════════╗"
 		check_version
 		printb "╠═════════════════════════════════════════════════════════╣"
-		printm "  SSH-Key: $KEY                                Port: $PORT"
+		printm "  SSH-Key: $KEY                               Port: $PORT"
 		printb "╠═════════════════════════════════════════════════════════╣"
 		printm ""
         printm "  $N1  Install/Update"
@@ -71,12 +71,12 @@ install_menu() {
         printm "  $N7  Node Authentication"
         printm ""
         printb "╚═════════════════════════════════════════════════════════╝"
-        printf "%b" "$MB"
+        printf "%b" "$menu_buffer"
         while true; do
             printf "\n$NC Selection [${BL}E$NC=Exit]: "; read -r choice
             case "$choice" in
                 1) do_install; break ;;
-				2|3|4|5|6|7)
+				2|3|4|5|6|7|dev)
                     froze || continue
                     case "$choice" in
                         2) do_uninstall ;;
@@ -101,6 +101,7 @@ install_menu() {
                             pause
                             ;;
                         7) node_auth ;;
+                        dev) set_github_branch ;;
                     esac
                     break ;;
                 e|E) clear; hasta; exit 0 ;;
@@ -115,7 +116,7 @@ check_version() {
     local mode="$1" version_cmp=""
     froze() { return 0; }
     if [ ! -f "$REPORT_SCRIPT" ]; then
-        STATE="NOT_INSTALLED"
+        STATE="NOT_INSTALLED"; N1="$BL(1)"
         froze() { freeze 2; return 1; }
     elif [ -z "$REMOTE_VERSION" ]; then
         STATE="OFFLINE"
@@ -146,14 +147,13 @@ check_version() {
             esac
             ;;
         *)
-            case "$STATE" in
-                OFFLINE)       SL=" $STATUS $RD[Offline]                 [GitHub Unreachable]" ;;
-                NOT_INSTALLED) SL=" $STATUS $GR[Not Installed]$NC       Latest Available:$GR v$REMOTE_VERSION$NC";  N1="$BL(1)" ;;
-                OUTDATED)      SL=" $STATUS $GR[New Version ${WH}v$REMOTE_VERSION$GR Available]$NC $CURRENT" ;;
-                HASH_DIFF)     SL=" $STATUS $GR[Hash Update Available]$NC        $CURRENT" ;;
-                UP_TO_DATE|*)  SL=" $STATUS $GR[Up to date]$NC                   $CURRENT" ;;
+             case "$STATE" in
+                OFFLINE)       printm " $STATUS $RD[Offline]                [GitHub Unreachable]" ;;
+                NOT_INSTALLED) printm " $STATUS $GR[Not Installed]$NC      Latest Available:$GR v$REMOTE_VERSION$NC" ;;
+                OUTDATED)      printm " $STATUS $GR[New Version ${WH}v$REMOTE_VERSION$GR Available] $CURRENT" ;;
+                HASH_DIFF)     printm " $STATUS $GR[Hash Update Available]      $CURRENT" ;;
+                UP_TO_DATE|*)  printm " $STATUS $GR[Up to date]                 $CURRENT" ;;
             esac
-            printm "$SL"
             ;;
     esac
 }
@@ -191,11 +191,11 @@ printm() {
         i=$((i + 1))
     done
     line="${line}${box_color}║$NC\n"
-    MB="${MB}${line}"
+    menu_buffer="${menu_buffer}${line}"
 }
 
 printb() {
-    MB="${MB}$BL$1$NC\n"
+    menu_buffer="${menu_buffer}$BL$1$NC\n"
 }
 
 menu_vars() {
@@ -214,13 +214,15 @@ menu_vars() {
     SS_FILE="/jffs/scripts/services-start"
     PROFILE_ADD="/jffs/configs/profile.add"
 
-    MB=""; echo -e "$BL"
+    menu_buffer=""; echo -e "$BL"
     PORT="$GR$SSH_PORT$NC"
     ON="${GR}ON$NC"; OFF="${RD}OFF$NC"
 
     STATUS="$NC STATUS:"
-    CURRENT="CURRENT:$GR v$SCRIPT_VERSION$DEV$NC"
+    CURRENT="$NC CURRENT:$GR v$SCRIPT_VERSION$DEV$NC"
     case "$SSH_KEY" in "") KEY="${RD}NO$NC" ;; *) KEY="${GR}YES$NC" ;; esac
+
+    BN="$GR$BRANCH_NAME$NC"
 }
 
 do_install() {
@@ -245,13 +247,6 @@ do_install() {
     echo -e "\n$GR[+] Downloading latest version (${NC}v$REMOTE_VERSION$GR)$NC"
     do_update || return 1
 
-    mkdir -p "$(dirname "$PROFILE_ADD")"
-    [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
-    if ! grep -q "alias as=" "$PROFILE_ADD" 2>/dev/null; then
-        echo "alias as=\"$REPORT_SCRIPT\" # added by Auto SSH-Key" >> "$PROFILE_ADD"
-        echo -e "\n$GR[+] Adding alias 'as' to $PROFILE_ADD$NC"
-    fi
-
 	if [ "$is_update" = "1" ]; then
 		echo -e "\n$BL[✓] Auto SSH-Key successfully installed.$NC"
 		printf "\nPress $BL[Enter]$NC to apply changes & restart script..."; read -r discard
@@ -267,6 +262,14 @@ do_install() {
     fi
 
     echo -e "\n$GR[+] Processing Auto SSH-Key Files...$NC\n"
+
+    mkdir -p "$(dirname "$PROFILE_ADD")"
+    [ ! -f "$PROFILE_ADD" ] && touch "$PROFILE_ADD"
+    if ! grep -q "alias as=" "$PROFILE_ADD" 2>/dev/null; then
+        echo "alias as=\"$REPORT_SCRIPT\" # added by Auto SSH-Key" >> "$PROFILE_ADD"
+        echo -e "\n$GR[+] Adding alias 'as' to $PROFILE_ADD$NC"
+    fi
+
     SCRIPT_VERSION="$REMOTE_VERSION"
     sys_log "(v$REMOTE_VERSION) successfully installed."
     echo -e "$GR[✓] SUCCESS: Installation complete!$NC\n"
@@ -334,7 +337,13 @@ wr_sha256() {
 }
 
 check_github() {
-    GITHUB="https://raw.githubusercontent.com/JB1366/AutoSSHKey/main/autosshkey.sh"
+    case "$BRANCH" in
+        1) GIT="JB1366"; BRANCH_NAME="Development"; DEV="D" ;;
+        *) GIT="JB1366"; BRANCH_NAME="main"; DEV="" ;;
+    esac
+
+    GITHUB="https://raw.githubusercontent.com/$GIT/AutoSSHKey/$BRANCH_NAME/autosshkey.sh"
+
     REMOTE_TMP="/tmp/wr_remote.tmp"; LOCAL_HASH=""; REMOTE_HASH=""
     if curl -sfL --retry 3 "$GITHUB" -o "$REMOTE_TMP" 2>/dev/null && [ -s "$REMOTE_TMP" ]; then
         REMOTE_VERSION=$(grep "SCRIPT_VERSION=" "$REMOTE_TMP" | head -n 1 | cut -d'"' -f2 | tr -cd '0-9.')
@@ -358,10 +367,50 @@ check_github() {
     rm -f "$REMOTE_TMP"
 }
 
+set_github_branch() {
+    while true; do
+        show_header
+        printb "╔═════════════════════════════════════════════════════════╗"
+        printm "                      Set Github Branch"
+        printb "╠═════════════════════════════════════════════════════════╣"
+        printm "  Branch: [$BN]                $CURRENT"
+        printb "╠═════════════════════════════════════════════════════════╣"
+        printm ""
+        printm "  $N1 main (JB1366)"
+        printm "  $N2 Development (JB1366)"
+        printm ""
+        printb "╚═════════════════════════════════════════════════════════╝"
+        printf "%b" "$menu_buffer"
+        while true; do
+            printf "\n$NC Selection [${BL}E$NC=Exit]: "; read -r choice
+            case "$choice" in
+                1) BRANCH="0" ;;
+                2) BRANCH="1" ;;
+                e|E) break 2 ;;
+                *) freeze 2; continue ;;
+            esac
+            break
+        done
+        if grep -q "^BRANCH=" "$CONFIG"; then
+            sed -i "s/^BRANCH=.*/BRANCH=\"$BRANCH\"/" "$CONFIG"
+        else
+            echo "BRANCH=\"$BRANCH\"" >> "$CONFIG"
+        fi
+        check_github
+        BN="$GR$BRANCH_NAME$NC"
+        printf "$NC\nPress $BL[Enter]$NC to switch to [$BN] branch & restart script..."; read -r restart
+        if do_update; then
+            exec "$REPORT_SCRIPT" install "$@"
+        else
+            echo -e "\n$RD[!]Error: Branch update failed!$NC" >&2
+            pause
+        fi
+    done
+}
+
 ssh_init() {
 	NODE_USER=$(nvram get http_username)
 	SSH_PORT=$(nvram get sshd_port)
-    SSH_PORT=${SSH_PORT:-22}
 	if [ -f "/root/.ssh/id_dropbear" ]; then
         SSH_KEY="/root/.ssh/id_dropbear"
 	else
@@ -381,7 +430,12 @@ node_auth() {
     echo -e "$NC              Verifying Node Authentication                "
     echo -e "$BL═══════════════════════════════════════════════════════════\n"
 
-    AIMESH_NODES=$(nvram get asus_device_list | sed 's/</\n/g' | grep '>2$' | awk -F '>' '{print $2 "|" $3}' |  sort -t . -k 4,4n)
+    AIMESH_NODES=$(nvram get asus_device_list |
+    sed 's/</\n/g' |
+    grep '>2$' |
+    awk -F '>' '{print $2 "|" $3}' |
+    sort -t . -k 4,4n)
+
     if [ -z "$AIMESH_NODES" ]; then
         echo -e "$RD[!] No AiMesh Nodes detected in NVRAM.$NC"
         TOTAL_NODES=0; any_success=0
@@ -638,7 +692,7 @@ freeze() { printf "\033[%dA\033[J" "${1:-1}"; }
 check_github; ssh_init
 
 hasta() {
-echo -e "\n\n\n$BL" #============================================================================================================#
+echo -e "\n\n\n$BL" #════════════════════════════════════════════════════════════════════════════════════════════════════════════#
 echo -e "                                                                                                                        "
 echo -e "                                                                                                                        "
 echo -e "             ██╗  ██╗ █████╗ ███████╗████████╗ █████╗      ██╗      █████╗      ██╗   ██╗██╗███████╗████████╗ █████╗    "
@@ -649,7 +703,7 @@ echo -e "    ██║      ██║  ██║██║  ██║████
 echo -e "    ██║      ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝     ╚══════╝╚═╝  ╚═╝       ╚═══╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝   "
 echo -e "    ╚═╝                                                                                                                 "
 echo -e "                                                                                                                        "
-echo -e "$NC\n\n\n" #============================================================================================================#
+echo -e "$NC\n\n\n" #════════════════════════════════════════════════════════════════════════════════════════════════════════════#
 }
 
 case "$1" in
