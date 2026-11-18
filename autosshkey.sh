@@ -307,7 +307,6 @@ do_update() {
             fi
 
             chmod +x "$REPORT_SCRIPT" 2>/dev/null
-            last_update
             return 0
         else
             if ! "$OPENSSL" pkeyutl -help 2>&1 | grep -q "rawin"; then
