@@ -21,7 +21,7 @@
 #                                                             #
 #═════════════════════════════════════════════════════════════#
 
-SCRIPT_VERSION="1.0.5"
+SCRIPT_VERSION="1.0.6"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -276,30 +276,77 @@ do_install() {
 	pause
 }
 
+get_pubkey() {
+    cat << 'EOF'
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAEdtCIawanvftpEaWarAijfbjyZB8U4siBZY7C48X23Y=
+-----END PUBLIC KEY-----
+EOF
+}
+
 do_update() {
-    TEMP_SCRIPT="/tmp/autosshkey.sh"
-    if curl -sfL --retry 3 "$GITHUB" -o "$TEMP_SCRIPT" 2>/dev/null && [ -s "$TEMP_SCRIPT" ]; then
-        mv "$TEMP_SCRIPT" "$REPORT_SCRIPT"
-        chmod +x "$REPORT_SCRIPT" 2>/dev/null
-        return 0
+    local TEMP_SCRIPT="/tmp/autosshkey.sh"
+    local TEMP_SIG="/tmp/autosshkey.sh.sig"
+    local TEMP_PUB="/tmp/autosshkey.pub.$$"
+    local OPENSSL="/opt/bin/openssl"
+    [ -x "$OPENSSL" ] || OPENSSL="openssl"
+
+    if curl -sfL --retry 3 "$GITHUB" -o "$TEMP_SCRIPT" 2>/dev/null && [ -s "$TEMP_SCRIPT" ] && \
+       curl -sfL --retry 3 "${GITHUB}.sig" -o "$TEMP_SIG" 2>/dev/null && [ -s "$TEMP_SIG" ]; then
+
+        get_pubkey > "$TEMP_PUB"
+
+        if "$OPENSSL" pkeyutl -verify -pubin -inkey "$TEMP_PUB" -rawin -in "$TEMP_SCRIPT" -sigfile "$TEMP_SIG" >/dev/null 2>&1; then
+            echo -e "\n$GR[✓] Signature verified successfully.$NC"
+            rm -f "$TEMP_PUB"
+            mv "$TEMP_SIG" "${REPORT_SCRIPT}.sig"
+            mv "$TEMP_SCRIPT" "$REPORT_SCRIPT"
+
+            if [ ! -f "${REPORT_SCRIPT}.pub" ]; then
+                get_pubkey > "${REPORT_SCRIPT}.pub"
+            fi
+
+            chmod +x "$REPORT_SCRIPT" 2>/dev/null
+            last_update
+            return 0
+        else
+            if ! "$OPENSSL" pkeyutl -help 2>&1 | grep -q "rawin"; then
+                echo -e "\n$RD[!] OpenSSL on this router lacks Ed25519 support. Install Entware openssl-util (opkg install openssl-util) and retry.$NC"
+            else
+                echo -e "\n$RD[!] Signature verification failed! Aborting update.$NC"
+            fi
+            rm -f "$TEMP_SCRIPT" "$TEMP_SIG" "$TEMP_PUB"
+            pause
+            return 1
+        fi
     else
-        rm -f "$TEMP_SCRIPT"
+        rm -f "$TEMP_SCRIPT" "$TEMP_SIG"
         if [ ! -f "$0" ]; then
             echo -e "$RD[!] Download failed. Aborting installation.$NC"
             return 1
         fi
-        local CURRENT_PATH; local TARGET_PATH
+        local CURRENT_PATH TARGET_PATH
         CURRENT_PATH=$(readlink -f "$0" 2>/dev/null)
         [ -z "$CURRENT_PATH" ] && CURRENT_PATH="$0"
         TARGET_PATH=$(readlink -f "$REPORT_SCRIPT" 2>/dev/null)
         [ -z "$TARGET_PATH" ] && TARGET_PATH="$REPORT_SCRIPT"
         if [ "$CURRENT_PATH" != "$TARGET_PATH" ]; then
-            echo -e "\n$YL[!] GitHub unreachable. Installing current local copy...$NC"
+            echo -e "\n$GR[+] GitHub unreachable. Installing current local copy...$NC"
             cp "$0" "$REPORT_SCRIPT"
+
+            if [ ! -f "${REPORT_SCRIPT}.pub" ]; then
+                get_pubkey > "${REPORT_SCRIPT}.pub"
+            fi
+
             chmod +x "$REPORT_SCRIPT" 2>/dev/null
             pause; return 0
         else
             echo -e "\n$YL[!] GitHub unreachable and script is already in place.$NC"
+
+            if [ ! -f "${REPORT_SCRIPT}.pub" ]; then
+                get_pubkey > "${REPORT_SCRIPT}.pub"
+            fi
+
             pause; return 1
         fi
     fi
