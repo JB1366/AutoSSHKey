@@ -21,7 +21,7 @@
 #                                                             #
 #═════════════════════════════════════════════════════════════#
 
-SCRIPT_VERSION="1.0.6"
+SCRIPT_VERSION="1.0.7"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -306,7 +306,7 @@ do_update() {
                 get_pubkey > "${REPORT_SCRIPT}.pub"
             fi
 
-            chmod +x "$REPORT_SCRIPT" 2>/dev/null
+            chmod 755 "$REPORT_SCRIPT" 2>/dev/null
             return 0
         else
             if ! "$OPENSSL" pkeyutl -help 2>&1 | grep -q "rawin"; then
@@ -337,7 +337,7 @@ do_update() {
                 get_pubkey > "${REPORT_SCRIPT}.pub"
             fi
 
-            chmod +x "$REPORT_SCRIPT" 2>/dev/null
+            chmod 755 "$REPORT_SCRIPT" 2>/dev/null
             pause; return 0
         else
             echo -e "\n$YL[!] GitHub unreachable and script is already in place.$NC"
@@ -624,7 +624,7 @@ ssh_keys() {
 	nvram get sshd_authkeys > /root/.ssh/authorized_keys
     chmod 600 /root/.ssh/authorized_keys
 
-    if [ ! -f "$SS_FILE" ]; then echo "#!/bin/sh" > "$SS_FILE" && chmod +x "$SS_FILE"; fi
+    if [ ! -f "$SS_FILE" ]; then echo "#!/bin/sh" > "$SS_FILE" && chmod 755 "$SS_FILE"; fi
     if ! grep -q "id_dropbear" "$SS_FILE"; then
         echo -e "\n$YL[i] Adding RSA Keys to services-start for persistence on reboots...$NC"
 		echo -e "\n$YL[i] Adding known_hosts to services-start...$NC\n"
