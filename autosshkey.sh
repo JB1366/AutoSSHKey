@@ -61,7 +61,7 @@ install_menu() {
 		printb "╠═════════════════════════════════════════════════════════╣"
 		printm "  SSH-Key: $KEY                               Port: $PORT"
 		printb "╠═════════════════════════════════════════════════════════╣"
-		printm ""
+		printm "$SHELL_TEXT  " "right"
         printm "  $N1  Install/Update"
         printm "  $N2  Uninstall"
         printm "  $N3  Generate RSA Keys & Provision AiMesh Nodes"
@@ -175,22 +175,38 @@ version_compare() {
 }
 
 printm() {
-    local box_color text target esc plain len pad line i
-    box_color="$BL"
-    text="$1"
-    target="${2:-57}"
-    esc=$(printf '\033')
-    plain=$(printf "%b" "$text" | sed "s/${esc}\[[0-9;]*m//g")
-    len=${#plain}
-    pad=$((target - len))
+    local box_color="$BL"
+    local text="$1"
+    local align="${2:-left}"
+    local esc=$(printf '\033')
+    local plain=$(printf "%b" "$text" | sed "s/${esc}\[[0-9;]*m//g")
+    local len=${#plain}
+    local pad=$((MB - len))
     [ "$pad" -lt 0 ] && pad=0
-    line="${box_color}║$NC${text}"
-    i=0
-    while [ "$i" -lt "$pad" ]; do
+    local lpad=0
+    local rpad=0
+    if [ "$align" = "center" ]; then
+        lpad=$((pad / 2))
+        rpad=$((pad - lpad))
+    elif [ "$align" = "right" ]; then
+        lpad="$pad"
+        rpad=0
+    else
+        rpad="$pad"
+    fi
+    local line="${box_color}║$NC"
+    local i=0
+    while [ "$i" -lt "$lpad" ]; do
         line="${line} "
         i=$((i + 1))
     done
-    line="${line}${box_color}║$NC\n"
+    line="${line}${text}"
+    i=0
+    while [ "$i" -lt "$rpad" ]; do
+        line="${line} "
+        i=$((i + 1))
+    done
+    local line="${line}${box_color}║$NC\n"
     menu_buffer="${menu_buffer}${line}"
 }
 
@@ -214,7 +230,7 @@ menu_vars() {
     SS_FILE="/jffs/scripts/services-start"
     PROFILE_ADD="/jffs/configs/profile.add"
 
-    menu_buffer=""; echo -e "$BL"
+    menu_buffer=""; MB="57"; echo -e "$BL"
     PORT="$GR$SSH_PORT$NC"
     ON="${GR}ON$NC"; OFF="${RD}OFF$NC"
 
@@ -223,6 +239,9 @@ menu_vars() {
     case "$SSH_KEY" in "") KEY="${RD}NO$NC" ;; *) KEY="${GR}YES$NC" ;; esac
 
     BN="$GR$BRANCH_NAME$NC"
+
+    COUNT1="https://script.google.com/macros/s/AKfycbzg5z1ihLgkxqsvDWoPwYhltX_1YSl8uWsnlcbG-444jJDIesssrC61PMWn6siCunMt/exec?event=aussh-update&version=${SCRIPT_VERSION}"
+    COUNT2="https://script.google.com/macros/s/AKfycbzg5z1ihLgkxqsvDWoPwYhltX_1YSl8uWsnlcbG-444jJDIesssrC61PMWn6siCunMt/exec?event=aussh-install&version=${SCRIPT_VERSION}"
 }
 
 do_install() {
@@ -250,7 +269,8 @@ do_install() {
 	if [ "$is_update" = "1" ]; then
 		echo -e "\n$BL[✓] Auto SSH-Key successfully installed.$NC"
 		printf "\nPress $BL[Enter]$NC to apply changes & restart script..."; read -r discard
-		sys_log "(v$REMOTE_VERSION) successfully installed."
+		curl -fsL "$COUNT1" >/dev/null 2>&1 &
+        sys_log "(v$REMOTE_VERSION) successfully installed."
 		exec "$REPORT_SCRIPT" install "$@"
 		echo -e "$RD[!]Error: Failed to restart script!$NC" >&2; exit 1
 	fi
@@ -271,6 +291,7 @@ do_install() {
     fi
 
     SCRIPT_VERSION="$REMOTE_VERSION"
+    curl -fsL "$COUNT2" >/dev/null 2>&1 &
     sys_log "(v$REMOTE_VERSION) successfully installed."
     echo -e "$GR[✓] SUCCESS: Installation complete!$NC\n"
 	pause
@@ -351,6 +372,35 @@ do_update() {
     fi
 }
 
+do_verify_signature() {
+    local TARGET_SCRIPT="${1:-$REPORT_SCRIPT}"
+    local TARGET_SIG="${2:-${TARGET_SCRIPT}.sig}"
+    local TEMP_PUB="/tmp/wirelessreport.pub.$$"
+    local OPENSSL="/opt/bin/openssl"
+    local RC=1
+
+    [ -x "$OPENSSL" ] || OPENSSL="openssl"
+
+    if [ -f "$TARGET_SCRIPT" ] && [ -s "$TARGET_SIG" ]; then
+        if [ -s "${TARGET_SCRIPT}.pub" ]; then
+            cp "${TARGET_SCRIPT}.pub" "$TEMP_PUB" 2>/dev/null || get_pubkey > "$TEMP_PUB"
+        else
+            get_pubkey > "$TEMP_PUB"
+        fi
+
+        if "$OPENSSL" pkeyutl -verify -pubin -inkey "$TEMP_PUB" -rawin -in "$TARGET_SCRIPT" -sigfile "$TARGET_SIG" >/dev/null 2>&1; then
+            RC=0
+        fi
+    fi
+    rm -f "$TEMP_PUB"
+    if [ "$RC" -eq 0 ]; then
+        SHELL_TEXT="$GR✓ Signature Verified"
+    else
+        SHELL_TEXT="$RD✕ Signature Failed"
+    fi
+    return "$RC"
+}
+
 ScriptUpdateFromAMTM() {
     doScriptUpdateFromAMTM=true
     if [ "$doScriptUpdateFromAMTM" != "true" ]; then
@@ -361,7 +411,8 @@ ScriptUpdateFromAMTM() {
     if check_github && do_update; then
         echo -e "  [+] Downloading latest version (v$REMOTE_VERSION)\n\n"
         echo -e "  [✓] Auto SSH-Key successfully updated.\n"
-		sys_log "AMTM Update: (v$REMOTE_VERSION) successfully installed."
+		curl -fsL "$COUNT1" >/dev/null 2>&1 &
+        sys_log "AMTM Update: (v$REMOTE_VERSION) successfully installed."
 		return 0
     fi
     return 1
@@ -735,8 +786,6 @@ pause() { printf "\nPress $BL[Enter]$NC to return..."; read -r discard; }
 
 freeze() { printf "\033[%dA\033[J" "${1:-1}"; }
 
-check_github; ssh_init
-
 hasta() {
 echo -e "\n\n\n$BL" #════════════════════════════════════════════════════════════════════════════════════════════════════════════#
 echo -e "                                                                                                                        "
@@ -759,6 +808,10 @@ case "$1" in
         exit "$?"
         ;;
 	*)
+        menu_vars
+        check_github
+        ssh_init
+        do_verify_signature
         install_menu
         ;;
 esac
