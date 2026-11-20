@@ -21,7 +21,7 @@
 #                                                             #
 #═════════════════════════════════════════════════════════════#
 
-SCRIPT_VERSION="1.0.7"
+SCRIPT_VERSION="1.0.8"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -50,6 +50,7 @@ show_header() {
     echo -e "    $JB_1366                                                "
     echo -e "          $JB1366                                           "
     echo -e "                                                            "
+    echo -e "$MODELID"                                                   #
     #════════════════════════════════════════════════════════════════════#
 }
 
@@ -214,6 +215,30 @@ printb() {
     menu_buffer="${menu_buffer}$BL$1$NC\n"
 }
 
+get_main_fw() {
+    firmver="$(nvram get firmver | tr -d '.')"
+    buildno="$(nvram get buildno)"
+    extendno="$(nvram get extendno)"
+    extendno="${extendno%%-*}"
+    fwVersion="${firmver}.${buildno}_${extendno}"
+}
+
+get_main_modelid() {
+    prodid=$(nvram get productid)
+    PID="Router: $prodid   FW: $fwVersion"
+    len=${#PID} target_width=58
+    pad1=$(((target_width - len) / 2))
+    MODEL_PAD=""
+    i=0
+    while [ $i -lt $pad1 ]; do
+        MODEL_PAD="$MODEL_PAD "
+        i=$((i + 1))
+    done
+
+    CACHED_PRODID="$prodid"
+    CACHED_FW="$fwVersion"
+}
+
 menu_vars() {
     if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 	trap 'printf "\033[0m"' 0; trap 'exit 130' INT TERM HUP
@@ -221,6 +246,7 @@ menu_vars() {
     UL='\033[4m'; WH='\e[1;37m'; YL='\033[0;33m'; NC='\033[0m'
     BL='\033[38;5;39m'; GR='\033[0;32m'; RD='\033[0;31m'
 
+    MODELID="${MODEL_PAD}${BL}Router: ${NC}${CACHED_PRODID}${BL}   FW:${NC} ${CACHED_FW}"
     JB_1366="$NC Copyright (c) 2026 JB_1366 - All Rights Reserved"
     JB1366="$GR${UL}https://github.com/JB1366/AutoSSHKey$NC"
 
@@ -808,6 +834,8 @@ case "$1" in
         exit "$?"
         ;;
 	*)
+        get_main_fw
+        get_main_modelid
         menu_vars
         check_github
         ssh_init
