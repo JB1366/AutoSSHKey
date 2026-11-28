@@ -21,7 +21,7 @@
 #                                                             #
 #═════════════════════════════════════════════════════════════#
 
-SCRIPT_VERSION="1.0.9"
+SCRIPT_VERSION="1.1.0"
 INSTALL_DIR="/jffs/addons/AutoSSHKey"
 REPORT_SCRIPT="$INSTALL_DIR/autosshkey.sh"
 CONFIG="$INSTALL_DIR/webui.conf"
@@ -269,6 +269,7 @@ menu_vars() {
 
     COUNT1="https://script.google.com/macros/s/AKfycbzg5z1ihLgkxqsvDWoPwYhltX_1YSl8uWsnlcbG-444jJDIesssrC61PMWn6siCunMt/exec?event=aukey-update&version=${SCRIPT_VERSION}"
     COUNT2="https://script.google.com/macros/s/AKfycbzg5z1ihLgkxqsvDWoPwYhltX_1YSl8uWsnlcbG-444jJDIesssrC61PMWn6siCunMt/exec?event=aukey-install&version=${SCRIPT_VERSION}"
+    COUNT3="https://script.google.com/macros/s/AKfycbzg5z1ihLgkxqsvDWoPwYhltX_1YSl8uWsnlcbG-444jJDIesssrC61PMWn6siCunMt/exec?event=aukey-uninst&version=${SCRIPT_VERSION}"
 }
 
 do_install() {
@@ -818,6 +819,7 @@ do_uninstall() {
 
     rm -rf "$INSTALL_DIR" 2>/dev/null
     sed -i "\|$REPORT_SCRIPT|d" "$PROFILE_ADD" 2>/dev/null
+    curl -fsL "$COUNT3" >/dev/null 2>&1 &
 	sys_log "(v$SCRIPT_VERSION) successfully uninstalled."
 	echo -e "\n$GR[+] Success: Auto SSH-Key uninstalled.$NC"
 	pause
