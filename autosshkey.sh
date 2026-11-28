@@ -242,7 +242,6 @@ get_main_modelid() {
 menu_vars() {
     if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 	trap 'printf "\033[0m"' 0; trap 'exit 130' INT TERM HUP
-
     UL='\033[4m'; WH='\e[1;37m'; YL='\033[0;33m'; NC='\033[0m'
     BL='\033[38;5;39m'; GR='\033[0;32m'; RD='\033[0;31m'
 

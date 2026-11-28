@@ -2,6 +2,7 @@
 # Auto SSH-Key - Changelog #
 #==========================#
 
+v1.1.0-minor updates.
 v1.0.9-updated signature verification.
 v1.0.8-minor updates, add productid.
 v1.0.7-added shell signature verification.
